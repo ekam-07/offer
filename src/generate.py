@@ -6,9 +6,11 @@ Behaviour comes from hidden personas in config/personas.yaml. Features are compu
 from these raw tables afterwards (src/features.py), like a real platform would.
 """
 import itertools
+import os
 import random
 import sqlite3
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import yaml
 
@@ -16,7 +18,7 @@ from . import events as events_mod
 from .config import CONFIG_DIR, DATA_DIR, RULES
 from .events import EVENT_COLUMNS, CustomerEvents, build_products, build_promotions, festival_multiplier, legacy_tables
 
-SHOP_DB = DATA_DIR / "shop.db"
+SHOP_DB = Path(os.getenv("SHOP_DB") or DATA_DIR / "shop.db")  # SHOP_DB: e.g. the slim copy used on Vercel
 
 CALIBRATED = CONFIG_DIR / "personas_calibrated.yaml"
 

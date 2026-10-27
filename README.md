@@ -67,6 +67,14 @@ tools/        experiments, rules PDF builder
 video/        scripts that render the demo videos (story2 = latest)
 ```
 
+## Hosting on Vercel
+
+The repo deploys as-is: import it at [vercel.com/new](https://vercel.com/new) (no build settings needed). `vercel.json` sends every request to [api/index.py](api/index.py), which runs the same Flask app as `preview.py`.
+
+- Optional: add `ANTHROPIC_API_KEY` under Project → Settings → Environment Variables so Claude decides; without it the rules engine decides.
+- Each instance starts from the demo data in `data/demo/` (rebuild with `python tools/make_vercel_data.py`), copied into `/tmp`. Changes made on the page are temporary.
+- Nothing is ever sent from the hosted copy: delivery is dry-run, the Telegram bot and background automation are off (test events still run when you trigger them on the page).
+
 ## Data not in the repo
 
 - **Databases** (`data/*.db`) are rebuilt by `generate_data.py` and `run_decisions.py`.

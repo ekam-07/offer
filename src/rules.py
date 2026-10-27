@@ -79,7 +79,7 @@ class Context:
 
 @lru_cache(maxsize=64)
 def _promotions_at(hour_key):
-    shop = DATA_DIR / "shop.db"
+    from .generate import SHOP_DB as shop
     if not shop.exists():
         return ()
     conn = sqlite3.connect(shop)

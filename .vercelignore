@@ -1,0 +1,9 @@
+video/
+docs/
+tests/
+data/dataset/
+data/raw/
+data/*.db
+*.pdf
+internship-email-agent/
+.claude/
