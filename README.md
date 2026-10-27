@@ -2,7 +2,7 @@
 
 **Every offer pays for itself.** Most stores send discounts to everyone, and about two out of three go to shoppers who would have bought anyway. This engine decides, for each customer, *which* offer to send (or none), checks every decision against 31 business rules, and delivers it through a Telegram bot.
 
-🎬 **Demo video:** [video/story2/AI_Offer_Engine_Demo_v2.mp4](video/story2/AI_Offer_Engine_Demo_v2.mp4) (3:48)
+🎬 **Demo video** (3:48): not stored in the repo; rebuild it with the steps under *Rebuilding the demo video*.
 
 ## How it works
 

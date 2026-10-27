@@ -23,7 +23,6 @@ video/ref/
 video/**/*.mp3
 video/**/*.wav
 video/**/*.mp4
-!video/story2/AI_Offer_Engine_Demo_v2.mp4
 
 # Separate project, kept out of this repo
 internship-email-agent/
