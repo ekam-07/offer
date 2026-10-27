@@ -5,21 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Offer Preview</title>
 <style>
+  /* Dark theme on every device, whatever the system setting (native date pickers and scrollbars too). */
   :root {
-    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --line: #e4e7ec;
-    --ai: #0f8a5f; --ai-bg: #e3f6ee; --rules: #2a5bd7; --rules-bg: #e6edfd;
-    --sys: #667085; --sys-bg: #eef0f3; --bad: #c4320a; --bad-bg: #fdece6; --warn: #b54708; --warn-bg: #fef3e2;
-    --bubble: #e7f8dd; --accent: #1d2330;
+    color-scheme: dark;
+    --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323e;
+    --ai: #4fd1a1; --ai-bg: #12352a; --rules: #8fb0ff; --rules-bg: #1b2a4d;
+    --sys: #98a2b3; --sys-bg: #262c36; --bad: #ff8a65; --bad-bg: #3d1f17; --warn: #fdb022; --warn-bg: #3a2a10;
+    --bubble: #1f3a2a; --accent: #e6e9ef;
   }
-  @media (prefers-color-scheme: dark) {
-    html #tip { background: #f2f4f7; color: #12151b; }
-    :root {
-      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323e;
-      --ai: #4fd1a1; --ai-bg: #12352a; --rules: #8fb0ff; --rules-bg: #1b2a4d;
-      --sys: #98a2b3; --sys-bg: #262c36; --bad: #ff8a65; --bad-bg: #3d1f17; --warn: #fdb022; --warn-bg: #3a2a10;
-      --bubble: #1f3a2a; --accent: #e6e9ef;
-    }
-  }
+  html #tip { background: #f2f4f7; color: #12151b; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
   header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 16px 20px 14px; }
