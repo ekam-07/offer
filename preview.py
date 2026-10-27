@@ -162,6 +162,22 @@ def post_event():
     return jsonify({"event_id": event_id, "processed": out and [e for e in out["events"] if e[0] == event_id]})
 
 
+@app.post("/api/telegram")
+def telegram_webhook():
+    """Telegram calls this for every message and button press when a webhook is set
+    (tools/telegram_webhook.py), instead of preview.py polling. Only requests carrying the
+    TELEGRAM_WEBHOOK_SECRET header are accepted. Always answers 200 so Telegram doesn't retry."""
+    secret = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+    if not secret or request.headers.get("X-Telegram-Bot-Api-Secret-Token") != secret:
+        return jsonify({"error": "forbidden"}), 403
+    try:
+        note = telegram_bot.handle_update(request.get_json(force=True) or {})
+        automation.tick(daily=False)  # decide and send what the message started (e.g. a /start sign-up)
+    except Exception as e:
+        note = f"error: {type(e).__name__}: {e}"
+    return jsonify({"ok": True, "note": note})
+
+
 @app.get("/api/automation")
 def automation_status():
     out = automation.status()

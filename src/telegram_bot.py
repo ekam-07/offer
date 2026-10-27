@@ -95,8 +95,12 @@ def unlink(chat_id):
 
 
 def test_chats():
+    """Chats that sent /test, plus TELEGRAM_TEST_CHATS (comma-separated chat IDs) for hosts like Vercel
+    whose database is wiped on every cold start."""
+    fixed = [c.strip() for c in os.getenv("TELEGRAM_TEST_CHATS", "").split(",") if c.strip()]
     with _conn() as conn:
-        return [r["chat_id"] for r in conn.execute("SELECT chat_id FROM telegram_chats WHERE kind = 'test'")]
+        linked = [r["chat_id"] for r in conn.execute("SELECT chat_id FROM telegram_chats WHERE kind = 'test'")]
+    return list(dict.fromkeys(fixed + linked))
 
 
 def chat_for(customer_id):
@@ -183,7 +187,8 @@ def handle_update(u, now=None):
     low = text.lower()
     if low == "/test":
         link(chat_id, "test", name=first)
-        _reply(chat_id, "🧪 This chat now receives the TEST copies of all customers' offers. Send /untest to stop.")
+        _reply(chat_id, "🧪 This chat now receives the TEST copies of all customers' offers. Send /untest to stop.\n"
+                        f"Chat ID: {chat_id} (put it in TELEGRAM_TEST_CHATS on a hosted copy to keep it)")
         return f"test chat added {chat_id}"
     if low == "/untest":
         unlink(chat_id)

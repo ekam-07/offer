@@ -73,7 +73,19 @@ The repo deploys as-is: import it at [vercel.com/new](https://vercel.com/new) (n
 
 - Optional: add `ANTHROPIC_API_KEY` under Project → Settings → Environment Variables so Claude decides; without it the rules engine decides.
 - Each instance starts from the demo data in `data/demo/` (rebuild with `python tools/make_vercel_data.py`), copied into `/tmp`. Changes made on the page are temporary.
-- Nothing is ever sent from the hosted copy: delivery is dry-run, the Telegram bot and background automation are off (test events still run when you trigger them on the page).
+- Without the Telegram settings below nothing is ever sent: delivery is dry-run and the bot is off. Background automation is always off on Vercel (test events still run when you trigger them on the page).
+
+### Telegram on Vercel
+
+Vercel can't keep polling Telegram, so the bot uses a webhook: Telegram calls `/api/telegram` for every message and button press.
+
+1. Make a secret and add it to `.env` as `TELEGRAM_WEBHOOK_SECRET=...`:
+   `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+2. In Vercel → Project → Settings → Environment Variables add `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` (same values as `.env`), `TELEGRAM_TEST_MODE=1` and `DELIVERY_MODE=live`, then redeploy.
+3. Point the bot at the site: `python tools/telegram_webhook.py set https://<your-app>.vercel.app` (check with `... info`).
+4. Send `/test` to the bot. It replies with your chat ID: add it as `TELEGRAM_TEST_CHATS` in Vercel (comma-separate several) and redeploy, so test copies keep arriving after the database resets.
+
+Limits: chats that pressed Start are forgotten when the instance restarts (the database lives in `/tmp`); at most 15 messages go out per request (`SEND_MAX_PER_ROUND`). While the webhook is set, a local `python preview.py` can't receive messages: run `python tools/telegram_webhook.py delete` to switch back.
 
 ## Data not in the repo
 

@@ -309,8 +309,10 @@ def send_due(now=None, ignore_send_time=None):
     with offer_log.connect() as conn:
         rows = [dict(r) for r in conn.execute(
             "SELECT * FROM offer_log WHERE status = 'READY' AND created_at >= ? AND created_at <= ? "
-            "AND (send_at IS NULL OR send_at <= ?)",
+            "AND (send_at IS NULL OR send_at <= ?) ORDER BY created_at DESC",
             (oldest, now.isoformat(timespec="seconds"), latest_send))]
+    if os.getenv("SEND_MAX_PER_ROUND"):  # newest first; the rest wait for the next round
+        rows = rows[:int(os.getenv("SEND_MAX_PER_ROUND"))]
     if not rows:
         return {}
     customers = all_customers()
@@ -322,14 +324,15 @@ def send_due(now=None, ignore_send_time=None):
     return out
 
 
-def tick(now=None, use_agent=None):
-    """One round of automation. Safe to call from several places: only one round runs at a time."""
+def tick(now=None, use_agent=None, daily=True):
+    """One round of automation. Safe to call from several places: only one round runs at a time.
+    daily=False skips the daily check of every customer (e.g. inside a short serverless request)."""
     if not _lock.acquire(blocking=False):
         return None
     try:
         now = now or datetime.now()
         events = process_due_events(now, use_agent)
-        daily = daily_run(now, use_agent)
+        daily = daily_run(now, use_agent) if daily else None
         sent = send_due(now)
         _state("last_tick", datetime.now().isoformat(timespec="seconds"))  # heartbeat: real time, even for test events
         return {"events": events, "daily": daily, "sent": sent}
