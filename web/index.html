@@ -60,6 +60,12 @@
   .tile .v { font-size: 20px; font-weight: 700; line-height: 1.2; }
   .tile .k { font-size: 11.5px; color: var(--muted); }
   .tile.ai .v { color: var(--ai); } .tile.rules .v { color: var(--rules); } .tile.bad .v { color: var(--bad); }
+  button.tile { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+  button.tile:hover { border-color: var(--muted); }
+  button.tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .tile .k .hint { display: block; color: var(--text); margin-top: 2px; }
+  .flash { animation: flash 1.2s ease-out; }
+  @keyframes flash { from { box-shadow: 0 0 0 2px var(--accent); } to { box-shadow: 0 0 0 2px transparent; } }
   .bar { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 5px; }
   .bar span { display: block; height: 100%; background: var(--ai); }
   #tip { position: fixed; z-index: 50; max-width: 280px; background: #1d2330; color: #fff; font-size: 12.5px; line-height: 1.4;
@@ -109,7 +115,6 @@
     table.list td, table.list th { padding: 9px 8px; }
   }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-  .card.flagged { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad) inset; }
   .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
   .name { font-weight: 600; font-size: 15px; }
   .persona { color: var(--muted); font-size: 12px; }
@@ -245,7 +250,7 @@
 
 <script>
 const state = { rows: [], total: 0, summary: null, focus: null, status: null, spent: 0,
-                page: 1, size: 25, q: "", sort: "name", open: null };
+                page: 1, size: 25, q: "", sort: "name", open: null, show: "" };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 const inr = (n) => "₹" + Math.round(n || 0).toLocaleString("en-IN");
@@ -589,26 +594,30 @@ async function sendEvent(kind, customerId, payload, btn) {
 function renderStats() {
   const s = state.status, m = state.summary;
   const pct = Math.min(100, Math.round((state.spent / (s.daily_budget_inr || 1)) * 100));
+  // [show filter, colour, value, label, tooltip]: clicking a tile shows those customers in the list (again to clear)
   const tiles = [
-    ["", `${m.decided.toLocaleString("en-IN")}/${m.customers.toLocaleString("en-IN")}`, "customers decided", "How many customers have a decision so far."],
-    ["", m.ready.toLocaleString("en-IN"), "offers ready to send", "Customers who will get a message."],
-    ["", m.kinds, "kinds of offers used", "How many different offers are in use (reminders, free delivery, coupons...)."],
-    ["ai", m.by_ai.toLocaleString("en-IN"), "chosen by the AI", "Decisions the AI made and the rules approved."],
-    ["rules", m.by_rules.toLocaleString("en-IN"), "chosen by the rules", "Decisions made by the rules alone (AI off, or the AI failed)."],
-    ["", m.held.toLocaleString("en-IN"), "no offer: test group or no consent",
+    ["decided", "", `${m.decided.toLocaleString("en-IN")}/${m.customers.toLocaleString("en-IN")}`, "customers decided", "How many customers have a decision so far."],
+    ["ready", "", m.ready.toLocaleString("en-IN"), "offers ready to send", "Customers who will get a message."],
+    ["kinds", "", m.kinds, "kinds of offers used", "How many different offers are in use (reminders, free delivery, coupons...). Click to pick one."],
+    ["ai", "ai", m.by_ai.toLocaleString("en-IN"), "chosen by the AI", "Decisions the AI made and the rules approved."],
+    ["rules", "rules", m.by_rules.toLocaleString("en-IN"), "chosen by the rules", "Decisions made by the rules alone (AI off, or the AI failed)."],
+    ["held", "", m.held.toLocaleString("en-IN"), "no offer: test group or no consent",
      "Customers kept without offers to measure the real effect, or who haven't agreed to messages."],
-    [m.flagged ? "bad" : "", m.flagged, "need a look ⚑", "Decisions a person should check. Tick 'Only ones that need a look' to see them."],
+    ["flagged", m.flagged ? "bad" : "", m.flagged, "need a look ⚑", "Decisions a person should check."],
   ];
-  $("stats").innerHTML = tiles.map(([cls, v, k, tip]) =>
-    `<div class="tile ${cls}" data-tip="${esc(tip)}"><div class="v">${esc(v)}</div><div class="k">${esc(k)}</div></div>`).join("") +
-    `<div class="tile" data-tip="Money promised in offers today, out of the daily limit. The limit can never be passed.">
-       <div class="v">${esc(inr(state.spent))}</div><div class="k">spent today of ${esc(inr(s.daily_budget_inr))}</div>
-       <div class="bar"><span style="width:${pct}%"></span></div></div>`;
+  const hint = (key) => state.show === key ? `<span class="hint">showing ${state.total} · click to clear</span>` : "";
+  $("stats").innerHTML = tiles.map(([key, cls, v, k, tip]) =>
+    `<button type="button" class="tile ${cls}" data-show="${key}" aria-pressed="${state.show === key}" data-tip="${esc(tip)}">
+       <div class="v">${esc(v)}</div><div class="k">${esc(k)}${hint(key)}</div></button>`).join("") +
+    `<button type="button" class="tile" data-show="paid_today" aria-pressed="${state.show === "paid_today"}"
+       data-tip="Money promised in offers today, out of the daily limit. The limit can never be passed. Click to see who.">
+       <div class="v">${esc(inr(state.spent))}</div><div class="k">spent today of ${esc(inr(s.daily_budget_inr))}${hint("paid_today")}</div>
+       <div class="bar"><span style="width:${pct}%"></span></div></button>`;
 }
 
 async function load() {
   const params = new URLSearchParams({ now: nowValue(), page: state.page, size: state.size, q: state.q, sort: state.sort,
-    segment: $("segFilter").value, offer: state.offer, flagged: $("flaggedOnly").checked ? "1" : "0" });
+    segment: $("segFilter").value, offer: state.offer, flagged: $("flaggedOnly").checked ? "1" : "0", show: state.show });
   const data = await api(`/api/customers?${params}`);
   Object.assign(state, { rows: data.rows, total: data.total, summary: data.summary, focus: data.focus, spent: data.spent_today_inr });
   const pages = Math.max(1, Math.ceil(state.total / state.size));
@@ -737,6 +746,18 @@ $("segFilter").addEventListener("change", reload);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
 })();
 $("flaggedOnly").addEventListener("change", reload);
+$("stats").addEventListener("click", (e) => {
+  const t = e.target.closest("button[data-show]");
+  if (!t) return;
+  if (t.dataset.show === "kinds") {  // the offer buttons already filter by kind: take the user there
+    const g = $("offerFilter").closest(".group");
+    g.scrollIntoView({ behavior: "smooth", block: "center" });
+    g.classList.remove("flash"); void g.offsetWidth; g.classList.add("flash");
+    return;
+  }
+  state.show = t.dataset.show === state.show ? "" : t.dataset.show;
+  reload();
+});
 $("offerFilter").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-offer]");
   if (!b) return;

@@ -90,6 +90,22 @@ def _offer_key(r):
     return (r.get("offer_id") or "NONE") if r else None
 
 
+def _shown(r, show, now):
+    """The summary tiles on the page as list filters (?show=...). Same tests as the counts."""
+    if not show:
+        return True
+    if r is None:
+        return False
+    return {"decided": True,
+            "ready": r["status"] == "READY",
+            "ai": r["decided_by"] == "AGENT",
+            "rules": r["decided_by"] == "RULES",
+            "held": r["status"] in ("HOLDOUT", "NOT_ELIGIBLE"),
+            "flagged": bool(r["flagged"]),
+            "paid_today": (r["status"] in ("READY", "SENT", "DRY_RUN") and (r["est_cost_inr"] or 0) > 0
+                           and r["created_at"][:10] == now.date().isoformat())}.get(show, True)
+
+
 @app.get("/api/customers")
 def customers():
     """One page of the customer list: search, filters, sort and paging happen here, so the page
@@ -98,7 +114,7 @@ def customers():
     now = _now(a.get("now"))
     latest = offer_log.latest_per_customer()
     q, seg, offer = (a.get("q") or "").strip().lower(), a.get("segment") or "", a.get("offer") or ""
-    flagged = a.get("flagged") == "1"
+    flagged, show = a.get("flagged") == "1", a.get("show") or ""
     page, size = max(1, int(a.get("page", 1))), min(100, max(5, int(a.get("size", 25))))
 
     rows, summary = [], {"customers": 0, "decided": 0, "ready": 0, "by_ai": 0, "by_rules": 0, "held": 0,
@@ -119,6 +135,8 @@ def customers():
             if r["status"] == "READY":
                 summary["kinds"].add(k)
         if seg and c["segment"] != seg or offer and _offer_key(r) != offer or flagged and not (r and r["flagged"]):
+            continue
+        if not _shown(r, show, now):
             continue
         if q and q not in (c.get("name") or "").lower() and q not in cid.lower():
             continue
