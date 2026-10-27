@@ -189,8 +189,12 @@ def telegram_webhook():
     if not secret or request.headers.get("X-Telegram-Bot-Api-Secret-Token") != secret:
         return jsonify({"error": "forbidden"}), 403
     try:
-        note = telegram_bot.handle_update(request.get_json(force=True) or {})
+        update = request.get_json(force=True) or {}
+        note = telegram_bot.handle_update(update)
         automation.tick(daily=False)  # decide and send what the message started (e.g. a /start sign-up)
+        if note.startswith("new customer "):  # no offer went out? tell them why
+            chat_id = str(update.get("message", {}).get("chat", {}).get("id", ""))
+            telegram_bot.explain_outcome(note.split()[-1], chat_id)
     except Exception as e:
         note = f"error: {type(e).__name__}: {e}"
     return jsonify({"ok": True, "note": note})

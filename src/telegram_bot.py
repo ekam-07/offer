@@ -136,21 +136,24 @@ def _paced_send(chat_id, text, markup=None):
 
 
 def send(customer, message, row=None):
-    """The delivery channel. Test mode: to every test chat, labelled. Real mode: to the customer's own chat."""
+    """The delivery channel. A customer who pressed Start always gets their own message. Test mode also
+    sends labelled copies to every test chat, so simulated customers' offers are visible somewhere."""
     env = _env()
     if not env["token"]:
         raise NoChat("Telegram is not set up (or disabled for this copy of the app)")
     cid, offer_id = customer["customer_id"], (row or {}).get("offer_id")
     markup = _buttons(cid, offer_id)
-    if env["test_mode"]:
-        chats = test_chats()
-        if not chats:
-            raise NoChat("test mode: no test chat yet (send /test to the bot first)")
-        label = f"🧪 Test · for {customer.get('name') or cid} ({cid}) · {(offer_id or '').replace('_', ' ').lower()}\n\n"
-        for chat in chats:
-            _paced_send(chat, label + message, markup)
-        return
     chat = chat_for(cid)
+    if env["test_mode"]:
+        copies = [c for c in test_chats() if c != chat]
+        if not chat and not copies:
+            raise NoChat("test mode: no test chat yet (send /test to the bot first)")
+        if chat:  # a real person (e.g. a judge who pressed Start): the offer is theirs
+            _paced_send(chat, message, markup)
+        label = f"🧪 Test · for {customer.get('name') or cid} ({cid}) · {(offer_id or '').replace('_', ' ').lower()}\n\n"
+        for c in copies:
+            _paced_send(c, label + message, markup)
+        return
     if not chat:
         raise NoChat(f"{cid} has no Telegram chat (they never pressed Start)")
     _paced_send(chat, message, markup)
@@ -228,6 +231,25 @@ def handle_update(u, now=None):
     elif result == "flagged_for_review":
         _reply(chat_id, "Sorry about that. A person from our team will look at it.")
     return f"reply {cid}: {result}"
+
+
+def explain_outcome(customer_id, chat_id):
+    """After a /start sign-up has been decided and sent: if no offer went out, say why, so someone
+    trying the bot (e.g. a judge) isn't left wondering. Returns the status, or None if nothing to say."""
+    rows = offer_log.customer_rows(customer_id, limit=1)
+    if not rows or rows[0]["status"] in ("SENT", "DRY_RUN"):
+        return None
+    status = rows[0]["status"]
+    text = {
+        "HOLDOUT": "No offer for you this time: you're in our control group. 15 in 100 shoppers get no offers, "
+                   "so we can measure whether offers really make a difference.",
+        "READY": "Your offer is ready, but it's quiet time (10 pm to 8 am), so we never message then. "
+                 "Send any message after 8 am to get it.",
+        "NO_OFFER": "No offer right now: none would pay for itself yet, so we keep quiet instead of spamming you.",
+        "NOT_ELIGIBLE": "No offer right now: you can't receive offers at the moment (for example after /stop).",
+    }.get(status, f"No offer sent this time ({status.replace('_', ' ').lower()}).")
+    _reply(chat_id, text + " Send /mydata to see what we decided.")
+    return status
 
 
 def poll_forever(stop=None):
