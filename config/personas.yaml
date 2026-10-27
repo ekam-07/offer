@@ -1,0 +1,184 @@
+# Hidden personas used to generate realistic customers.
+# Ranges [a, b] are sampled uniformly per customer, so customers of the same persona differ.
+# Later (Step 1a) these numbers can be calibrated from real datasets (REES46 / RetailRocket).
+#
+# weight            share of customers with this persona
+# tenure_days       days since signup
+# order_gap_days    average days between orders while the customer is active
+# stop_days         days ago the customer stopped buying (0 = still active)
+# stop_gap_mult     alternative to stop_days: stopped buying (gap x mult) days ago
+# max_orders        cap on lifetime orders (used for new customers)
+# aov_inr           typical order value
+# coupon_rate       chance an order uses a coupon
+# sessions_per_week browsing sessions per week (last 30 days)
+# abandon_rate      chance a session without a purchase leaves items in the cart
+# recent_abandon    chance of an abandoned cart in the last 48h
+# points_mult       loyalty points multiplier (tier perks)
+# opt_in            chance the customer agreed to receive offers
+
+# Browsing behaviour for the full-year event stream (src/events.py). Personas override any key.
+# search_rate         chance a session starts with a search (else category browsing)
+# click_rate          chance the 1st item in a list is clicked (lower further down the list)
+# wishlist_rate       chance a viewed item is added to the wishlist
+# follow_rate         chance per session of following a brand
+# not_interested_rate chance per session of marking an item "not interested"
+# promo_view_rate     chance per session of seeing the current store promotion banner
+# promo_click_rate    chance of clicking the promotion when seen
+# review_rate         chance of reviewing a purchase
+# return_rate_mult    multiplier on the category return rate
+# plus_member         chance of being a paid "Plus" member (like Prime)
+# sessions_per_week_active  browsing rate before the customer stopped buying (defaults to sessions_per_week)
+behaviour_defaults:
+  search_rate: 0.45
+  click_rate: 0.25
+  wishlist_rate: 0.04
+  follow_rate: 0.01
+  not_interested_rate: 0.02
+  promo_view_rate: 0.35
+  promo_click_rate: 0.08
+  review_rate: 0.15
+  return_rate_mult: 1.0
+  plus_member: 0.2
+
+return_rate_by_category: {Fashion: 0.15, Electronics: 0.05, Mobiles: 0.04, Home: 0.04, Beauty: 0.03, Books: 0.01, Grocery: 0.01}
+
+consent:                       # chance an opted-in customer allows each channel
+  telegram: 0.85                # the real channel; the others are simulated
+  email: 0.9
+  sms: 0.6
+  push: 0.7
+  whatsapp: 0.5
+
+missing_field_share: 0.04    # share of customers with a missing city / signup channel
+
+points_per_inr: 0.04           # 1 point per ₹25 spent
+points_expire_days: 365
+redeem_chance: 0.15            # chance an order also redeems half the points balance
+
+categories:                    # weight = how popular; price_mult scales order value
+  Fashion:     {weight: 0.26, price_mult: 0.8}
+  Electronics: {weight: 0.15, price_mult: 1.5}
+  Mobiles:     {weight: 0.12, price_mult: 1.8}
+  Home:        {weight: 0.14, price_mult: 1.0}
+  Beauty:      {weight: 0.13, price_mult: 0.6}
+  Books:       {weight: 0.08, price_mult: 0.4}
+  Grocery:     {weight: 0.12, price_mult: 0.5}
+
+products:                      # used for abandoned-cart items
+  Fashion: [Denim Jacket, Running Shoes, Cotton Kurta, Leather Handbag]
+  Electronics: [Noise Cancelling Headphones, Smart Watch, Bluetooth Speaker, Power Bank]
+  Mobiles: [Smartphone 5G, Phone Case, Fast Charger, Wireless Earbuds]
+  Home: [Non-stick Cookware Set, Bedsheet Set, Table Lamp, Water Purifier]
+  Beauty: [Face Serum, Hair Dryer, Perfume, Sunscreen SPF 50]
+  Books: [Atomic Habits, Python Crash Course, The Alchemist, Ikigai]
+  Grocery: [Basmati Rice 5kg, Dry Fruits Pack, Green Tea, Olive Oil 1L]
+
+personas:
+  loyal:
+    weight: 0.20
+    tenure_days: [300, 1000]
+    order_gap_days: [7, 16]
+    aov_inr: [1200, 2500]
+    coupon_rate: [0.0, 0.1]
+    sessions_per_week: [3, 7]
+    abandon_rate: 0.05
+    recent_abandon: 0.0
+    opt_in: 0.95
+    review_rate: 0.25
+    follow_rate: 0.02
+    promo_click_rate: 0.03
+    plus_member: 0.5
+  deal_seeker:
+    weight: 0.17
+    tenure_days: [200, 900]
+    order_gap_days: [14, 30]
+    aov_inr: [700, 1500]
+    coupon_rate: [0.6, 0.9]
+    sessions_per_week: [3, 8]
+    abandon_rate: 0.12
+    recent_abandon: 0.0
+    opt_in: 0.95
+    search_rate: 0.6
+    promo_click_rate: 0.35
+    promo_view_rate: 0.5
+    return_rate_mult: 1.2
+    plus_member: 0.3
+  at_risk:
+    weight: 0.12
+    tenure_days: [250, 900]
+    order_gap_days: [10, 22]
+    stop_gap_mult: [2.0, 4.0]
+    aov_inr: [1000, 2500]
+    coupon_rate: [0.1, 0.4]
+    sessions_per_week: [0.5, 2]
+    abandon_rate: 0.1
+    recent_abandon: 0.0
+    opt_in: 0.9
+    sessions_per_week_active: [2, 5]
+  dormant:
+    weight: 0.12
+    tenure_days: [450, 1100]
+    order_gap_days: [20, 45]
+    stop_days: [95, 300]
+    aov_inr: [800, 2000]
+    coupon_rate: [0.1, 0.45]
+    sessions_per_week: [0, 0.3]
+    abandon_rate: 0.1
+    recent_abandon: 0.0
+    opt_in: 0.85
+    sessions_per_week_active: [1, 3]
+    click_rate: 0.15
+  new:
+    weight: 0.13
+    tenure_days: [1, 28]
+    order_gap_days: [10, 20]
+    max_orders: 1
+    aov_inr: [500, 1500]
+    coupon_rate: [0.0, 0.3]
+    sessions_per_week: [2, 6]
+    abandon_rate: 0.2
+    recent_abandon: 0.0
+    opt_in: 0.95
+    search_rate: 0.55
+    plus_member: 0.05
+  cart_abandoner:
+    weight: 0.10
+    tenure_days: [100, 700]
+    order_gap_days: [25, 50]
+    aov_inr: [1500, 3500]
+    coupon_rate: [0.1, 0.4]
+    sessions_per_week: [3, 6]
+    abandon_rate: 0.6
+    recent_abandon: 0.9
+    opt_in: 0.95
+    wishlist_rate: 0.06
+  window_shopper:
+    weight: 0.10
+    tenure_days: [100, 600]
+    order_gap_days: [150, 300]
+    aov_inr: [500, 1200]
+    coupon_rate: [0.0, 0.2]
+    sessions_per_week: [5, 12]
+    abandon_rate: 0.08
+    recent_abandon: 0.0
+    opt_in: 0.9
+    search_rate: 0.5
+    click_rate: 0.35
+    wishlist_rate: 0.10
+    not_interested_rate: 0.04
+  vip:
+    weight: 0.06
+    tenure_days: [500, 1200]
+    order_gap_days: [12, 30]
+    aov_inr: [5000, 12000]
+    coupon_rate: [0.0, 0.1]
+    sessions_per_week: [2, 5]
+    abandon_rate: 0.1
+    recent_abandon: 0.0
+    points_mult: 2
+    opt_in: 0.95
+    review_rate: 0.3
+    follow_rate: 0.03
+    promo_click_rate: 0.02
+    return_rate_mult: 0.8
+    plus_member: 0.9

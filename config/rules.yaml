@@ -1,0 +1,353 @@
+# Business rules / guardrails. Every offer, whether chosen by the AI agent or by the
+# rule-based fallback, is checked against these before it is sent.
+# Rule IDs (R1..R31) appear in the offer log when a rule is broken. Full list: Offer_Rules.pdf
+# (python tools/make_rules_pdf.py Offer_Rules.pdf .).
+# All times are India Standard Time (IST, UTC+05:30).
+timezone: Asia/Kolkata
+
+# ---- Segments ------------------------------------------------------------------
+# Each customer gets a SEGMENT (first match in segment_order) and a BASE SEGMENT (the same,
+# but ignoring the open cart). An open cart decides the offer list (reminder first), but
+# every cap is the stricter of the two, so a VIP with an open cart keeps VIP's limits.
+#
+# CART_ABANDONER: open cart in the last 48h
+# NEW:            never ordered, joined in the last 30 days
+# NEVER_BOUGHT:   never ordered, joined earlier
+# DORMANT:        no order for max(90 days, 2 x usual gap)
+# AT_RISK:        3+ orders and 1.5x late vs usual gap, or churn risk >= 0.6
+# VIP:            top 10% of 12-month spend (vip_min_aov only for data without that flag)
+#
+# Definitions:
+#   usual gap  = average days between a customer's orders. Undefined with 0-1 orders: then
+#                DORMANT uses 90 days only, and AT_RISK (which needs 3+ orders) doesn't apply.
+#   gap ratio  = days since last order / usual gap
+#   churn risk = a formula, not a trained model (src/segments.py):
+#                0.5 x min(gap ratio / 3, 1) + 0.3 x min(days since last order / 120, 1)
+#                + 0.2 x (1 if no order in 90 days else 0); 0 for customers who never ordered
+#   buy chance (p_buy_7d) = estimated chance of buying in the next 7 days without an offer,
+#                from their non-coupon purchase rate, discounted when overdue
+segment_thresholds:
+  new_max_tenure_days: 30
+  cart_abandon_window_hours: 48
+  dormant_min_recency_days: 90
+  dormant_gap_multiple: 2
+  at_risk_min_gap_ratio: 1.5
+  at_risk_min_churn_risk: 0.6
+  points_expiring_min: 300
+  deal_seeker_min_coupon_rate: 0.5
+  deal_seeker_min_orders: 3         # one coupon order isn't a habit
+  vip_top_spend_pct: 10
+  vip_min_aov: 4000
+  loyal_min_would_buy_anyway: 0.7
+  browser_min_sessions_no_buy: 3
+
+segment_order: [CART_ABANDONER, NEW, NEVER_BOUGHT, DORMANT, AT_RISK, POINTS_EXPIRING, DEAL_SEEKER, VIP, LOYAL, BROWSER, REGULAR]
+
+# Uplift groups (rule of thumb; each customer gets one, shown to the AI and used by R26):
+#   sleeping_dog: reacted badly to our past offers ("fewer offers", "not interested" on an
+#                 offer, or /stop) -> no offers at all. Hiding PRODUCTS is not used: that is
+#                 dislike of a product, not of offers.
+#   lost_cause:   gone long ago and not even browsing        -> free offers only
+#   sure_thing:   buys anyway, rarely uses coupons           -> discounts mostly wasted
+#   persuadable:  everyone else                              -> where offers pay off
+uplift_groups:
+  sleeping_dog_min_negative_reactions_90d: 2
+  lost_cause_min_recency_days: 180
+  sure_thing_min_p_buy_7d: 0.30
+  sure_thing_max_coupon_rate: 0.3
+
+# Per segment: allowed offers, caps and the fallback's tie-break order.
+# R2  offer must be in "allowed". NONE must be LAST (checked when the rules load).
+# R4  caps, always the stricter of SEGMENT and BASE SEGMENT:
+#       max_percent         store-wide % discounts (PERCENT_OFF, CATEGORY_DEAL, WELCOME)
+#       max_flat_inr        flat ₹ discounts (FLAT_OFF) only
+#       max_offer_cost_inr  any offer's cost, whatever its type (free shipping, bonus points,
+#                           coupons, discounts) - this is what "Max ₹" means for non-discounts
+#       product_coupon_max_percent  extra cap on product coupons (else the coupon tier decides)
+# The rule-based fallback picks the allowed offer with the highest EXPECTED PROFIT (R30),
+# free nudges counting as EP >= 0; ties go to the cheaper offer, then to this list's order.
+# value_strategy (fallback only): min / max / churn (scale with churn risk). Default: min.
+segments:
+  NEW:
+    allowed: [WELCOME, FLAT_OFF, PRODUCT_COUPON, FREE_SHIPPING, WISHLIST_ALERT, BUNDLE_SUGGEST, BUNDLE_DEAL, SPEND_GOAL, NONE]
+    max_percent: 10
+    max_flat_inr: 100
+    max_offer_cost_inr: 100
+  NEVER_BOUGHT:
+    allowed: [WELCOME, PRODUCT_COUPON, FREE_SHIPPING, WISHLIST_ALERT, BUNDLE_SUGGEST, NONE]
+    max_percent: 10
+    max_flat_inr: 100
+    max_offer_cost_inr: 100
+  CART_ABANDONER:
+    allowed: [CART_REMINDER, CART_ALTERNATIVE, PRODUCT_COUPON, FREE_SHIPPING, FLAT_OFF, BUNDLE_SUGGEST, WISHLIST_ALERT, BUNDLE_DEAL, SPEND_GOAL, NONE]
+    max_percent: 0
+    max_flat_inr: 150
+    max_offer_cost_inr: 150
+  DORMANT:
+    allowed: [FLAT_OFF, PRODUCT_COUPON, PERCENT_OFF, CATEGORY_DEAL, BONUS_POINTS, POINTS_UPDATE, WISHLIST_ALERT, BUNDLE_SUGGEST, BUNDLE_DEAL, SPEND_GOAL, NONE]
+    max_percent: 20
+    max_flat_inr: 300
+    max_offer_cost_inr: 300
+    value_strategy: max
+  AT_RISK:
+    allowed: [CATEGORY_DEAL, PRODUCT_COUPON, REPLENISH_REMINDER, BONUS_POINTS, FLAT_OFF, PERCENT_OFF, FREE_SHIPPING, POINTS_UPDATE, WISHLIST_ALERT, BUNDLE_SUGGEST, BUNDLE_DEAL, SPEND_GOAL, PERK_CHOICE, NONE]
+    max_percent: 15
+    max_flat_inr: 250
+    max_offer_cost_inr: 250
+    value_strategy: churn
+  POINTS_EXPIRING:
+    allowed: [POINTS_REMINDER, POINTS_UPDATE, BONUS_POINTS, PRODUCT_COUPON, WISHLIST_ALERT, BUNDLE_SUGGEST, NONE]
+    max_percent: 0
+    max_flat_inr: 0
+    max_offer_cost_inr: 60
+    product_coupon_max_percent: 5
+  DEAL_SEEKER:
+    allowed: [FLAT_OFF, PRODUCT_COUPON, CATEGORY_DEAL, FREE_SHIPPING, BONUS_POINTS, REPLENISH_REMINDER, REVIEW_REQUEST, WISHLIST_ALERT, BUNDLE_SUGGEST, BUNDLE_DEAL, SPEND_GOAL, PERK_CHOICE, NONE]
+    max_percent: 10
+    max_flat_inr: 100
+    max_offer_cost_inr: 120
+    value_strategy: max
+  VIP:
+    allowed: [EARLY_ACCESS, POINTS_UPDATE, REPLENISH_REMINDER, REVIEW_REQUEST, FREE_SHIPPING, BONUS_POINTS, PRODUCT_COUPON, WISHLIST_ALERT, BUNDLE_SUGGEST, PERK_CHOICE, NONE]
+    max_percent: 0
+    max_flat_inr: 0
+    max_offer_cost_inr: 100
+    product_coupon_max_percent: 5
+  LOYAL:
+    allowed: [EARLY_ACCESS, POINTS_UPDATE, REPLENISH_REMINDER, POINTS_REMINDER, REVIEW_REQUEST, BONUS_POINTS, PRODUCT_COUPON, WISHLIST_ALERT, BUNDLE_SUGGEST, NONE]
+    max_percent: 0
+    max_flat_inr: 0
+    max_offer_cost_inr: 100
+    product_coupon_max_percent: 5
+  BROWSER:
+    allowed: [CATEGORY_DEAL, FLAT_OFF, PRODUCT_COUPON, FREE_SHIPPING, WISHLIST_ALERT, BUNDLE_SUGGEST, BUNDLE_DEAL, SPEND_GOAL, NONE]
+    max_percent: 10
+    max_flat_inr: 100
+    max_offer_cost_inr: 100
+  REGULAR:
+    allowed: [REPLENISH_REMINDER, POINTS_UPDATE, REVIEW_REQUEST, BONUS_POINTS, FREE_SHIPPING, FLAT_OFF, PRODUCT_COUPON, WISHLIST_ALERT, BUNDLE_SUGGEST, BUNDLE_DEAL, SPEND_GOAL, PERK_CHOICE, NONE]
+    max_percent: 5
+    max_flat_inr: 50
+    max_offer_cost_inr: 100
+
+# ---- Coupon tiers (PRODUCT_COUPON) ------------------------------------------------
+# Everyone can get a product coupon, but how big and how often depends on how often they
+# buy. On the same product, a FREQUENT buyer always gets less, and less often, than an
+# OCCASIONAL, IRREGULAR or FIRST_ORDER customer (R19, checked when the rules load).
+# Tier = FIRST_ORDER if the customer has never ordered (whether in segment NEW or
+# NEVER_BOUGHT), else the first tier whose buy-chance threshold they reach.
+# max_coupon_inr keeps a "small" coupon small on expensive products.
+# FIRST_ORDER is deliberately NOT the most generous tier: we know least about new accounts
+# and they are the easiest to fake, so the coupon needs a minimum basket.
+coupon_tiers:
+  - {name: FREQUENT,    min_p_buy_7d: 0.30, max_percent: 5,  max_coupon_inr: 100, coupon_every_days: 30}
+  - {name: OCCASIONAL,  min_p_buy_7d: 0.10, max_percent: 10, max_coupon_inr: 200, coupon_every_days: 14}
+  - {name: IRREGULAR,   min_p_buy_7d: 0.0,  max_percent: 15, max_coupon_inr: 400, coupon_every_days: 7}
+  - {name: FIRST_ORDER, first_order: true,  max_percent: 10, max_coupon_inr: 200, coupon_every_days: 7, min_order_inr: 499}
+
+# Business choice: also give small, rare coupons to customers who would buy anyway
+# (uplift group "sure_thing"), as goodwill. Such a coupon has negative expected profit, so
+# it is the one documented exception to R30, and the fallback gives it when it is due
+# (every 30 days for FREQUENT buyers). false = coupons are blocked for sure things.
+coupons_for_sure_things: true
+
+# Average order (INR) used when a customer has no order history: R6, cost estimates, and
+# the cost of WELCOME (10% x ₹900 = ₹90).
+default_aov_inr: 900
+
+# ---- Value limits ---------------------------------------------------------------
+# R5: a discount must leave at least margin_floor_pct of margin in that category.
+#     % offers: the % may not exceed (category margin - floor).
+#     Flat ₹ off and free shipping: the MINIMUM BASKET rises until the cost is within the
+#     allowed %: min basket = max(catalog minimum, cost / allowed %). E.g. ₹150 off in
+#     Electronics (8% allowed) needs a ₹1,875 basket. If that is more than
+#     max_min_basket_multiple x the customer's average order, the offer is blocked.
+margin_floor_pct: 10
+max_min_basket_multiple: 3
+category_margin_pct:
+  Mobiles: 12
+  Electronics: 18
+  Grocery: 15
+  Books: 25
+  Home: 35
+  Beauty: 40
+  Fashion: 45
+  default: 20
+
+# R6: a flat discount can't be more than this share of the customer's average order value.
+max_flat_share_of_aov: 0.15
+
+# ---- Frequency / timing (R9) ------------------------------------------------------
+# Two separate caps, so a free nudge can't block an urgent cart reminder:
+#   paid offers (cost > 0):  at least 24h apart, at most 3 per 7 days
+#                            (168h apart = one a week, if the customer pressed "fewer offers")
+#   any message:             at least 4h apart, at most 5 per 7 days
+# Cart reminders skip the minimum gaps (they only matter inside the 48h cart window) but
+# still count towards the weekly limits.
+# R11 quiet hours apply to SENDING only: decisions may run at any time; a decision made at
+# night is planned for the next morning's window.
+frequency:
+  paid_min_hours_between: 24
+  paid_max_per_7_days: 3
+  message_min_hours_between: 4
+  message_max_per_7_days: 5
+  gap_exempt_offers: [CART_REMINDER, CART_ALTERNATIVE]
+  discount_cooldown_days: 14       # R10: no new discount within N days of redeeming one
+  quiet_hours: [22, 8]             # R11: no sending from 22:00 to 08:00 IST
+  escalation_wait_hours: 24        # R12: open cart -> cart reminder first, paid offers 24h later
+  cart_escalation: true            # R12: reminder sent >= 24h ago, cart still open (no purchase) -> the next cart
+  cart_escalation_days: 14         #      message is a discount (if one pays), never a second reminder
+  cart_discount_offers: [PRODUCT_COUPON, FLAT_OFF, FREE_SHIPPING]
+  one_live_offer: true             # R8: while a customer holds an offer with a validity they were told about
+                                   # (a coupon, free delivery, points, a goal...), they get NO new offer of any
+                                   # kind until it ends. Internal-only validity (reminders) doesn't count.
+
+# ---- Offer validity and cost (values live in offers.yaml) ----------------------------
+# Validity (valid_days per offer) drives R8 and is stated in the message when customer-facing.
+# Cost of each offer type (maximum liability, as if redeemed):
+#   % off / category deal / welcome   average order (₹900 if no history) x %
+#   product coupon                    focus product price x %
+#   flat off                          the ₹ value
+#   free shipping                     ₹60
+#   bonus points                      points x ₹0.25
+#   reminders, early access, nudges   ₹0
+# Expected cost = cost x chance the customer buys while holding the offer (R30 formula);
+# logged next to the liability, and reported to plan the budget.
+
+# ---- Expected profit (R30) ----------------------------------------------------------
+# EP = (P_with - P_without) x margin - P_with x cost
+#   P_without = buy chance in 7 days without an offer (p_buy_7d)
+#   P_with    = P_without + (1 - P_without) x lift
+#   margin    = average order (₹900 if none) x category margin %
+#   lift      = the engine's own estimate (below); the AI is given each option's EP and
+#               the checker recomputes it. Paid offers need EP > 0 (except the goodwill coupon).
+expected_profit:
+  base_sensitivity: 0.10          # discount sensitivity = base + weight x price signal + churn weight x churn risk
+  price_signal_weight: 0.60       # price signal = max(coupon rate, 2 x promo click rate)
+  churn_weight: 0.20
+  max_sensitivity: 0.60
+  half_effect_pct: 7              # a discount of this % gets half the maximum effect
+  count_basket_topup: true        # a customer who buys BECAUSE of "₹100 off on ₹999+" fills the basket to ₹999
+  scoped_breadth: 0.6             # a welcome offer limited to categories they aren't browsing works less
+  intent_factor: {in cart: 0.9, wishlist: 0.9, viewed: 0.7, popular in category: 0.5}
+  free_lift:                      # lift of free offers when their condition holds
+    CART_REMINDER: 0.12
+    CART_ALTERNATIVE: 0.06
+    REPLENISH_REMINDER: 0.08
+    POINTS_REMINDER: 0.04
+    EARLY_ACCESS: 0.03
+    POINTS_UPDATE: 0.01
+    REVIEW_REQUEST: 0.0
+    BUNDLE_SUGGEST: 0.03          # raises the chance they ADD the bought-together item (cross-sell clicks are low)
+    WISHLIST_ALERT: 0.08          # real price drop or restock on something they wanted
+  goal_completion: 0.6            # a spend goal only pays if they reach the target; assume 6 in 10 do
+  choice_bonus: 0.10              # letting them pick the perk they value works a bit better than either perk alone
+
+# ---- New offers: bought together, wishlist watcher, spend goal, pick your perk ----------
+bundle:
+  min_confidence: 0.10        # "bought with" pairs where at least 10 in 100 buyers of A also bought B
+  recent_purchase_days: 14    # a purchase this recent can anchor a "goes well with" suggestion
+
+# ---- Per-customer spend cap (R31) ------------------------------------------------------
+# Offer cost given to one customer over 30 days <= 10% of the margin they brought in over
+# 12 months (at least ₹100), so one customer can't soak up repeated offers.
+spend_cap:
+  window_days: 30
+  pct_of_margin_12m: 10
+  min_inr: 100
+
+# ---- Budget ---------------------------------------------------------------------
+budget:
+  daily_inr: 20000                 # R13: hard cap on maximum liability committed per day
+  cost_basis: max_liability
+  pacing: linear                   # released evenly over 08:00-22:00 IST
+
+# ---- Message rules (checked on AI-written text) ---------------------------------
+message:
+  max_chars: 300                   # R15
+  must_state_value: true
+  banned_phrases: [last chance, only today, hurry, act now, final warning, expires in minutes]
+  unsupported_claims:              # promises the catalog never makes
+    [no minimum, without a minimum, saved for, will be saved, reserved for you, "we'll hold", guarantee,
+     once the sale, when the sale opens, cashback, free returns, lowest price, best price, extra discount, stack]
+  offer_keywords:                  # the text must match the offer type
+    FREE_SHIPPING: [free delivery, free shipping]
+    BONUS_POINTS: [points]
+    POINTS_REMINDER: [points]
+    POINTS_UPDATE: [points]
+    EARLY_ACCESS: [early access]
+    CART_REMINDER: [cart]
+    CART_ALTERNATIVE: [cart]
+    REPLENISH_REMINDER: [restock, reorder, running low, top up]
+    REVIEW_REQUEST: [review]
+    WELCOME: [welcome, first order]
+    WISHLIST_ALERT: [wishlist]
+    SPEND_GOAL: [spend]
+    PERK_CHOICE: [pick, choose]
+  forbidden_patterns: ['https?://', 'www\.', '<\s*[a-z/]', '\S+@\S+\.\S+', '\b\d{10}\b']
+  # R16: never personalise on product types that reveal sensitive information
+  sensitive_item_types: [Pregnancy Test, Adult Diapers, Glucose Monitor, Hair Loss Treatment, Contraceptives, Hearing Aid]
+  sensitive_terms: [age, old, young, gender, religion, caste, income, salary, pregnant, health, disability]
+
+# ---- Guards -----------------------------------------------------------------------
+# R22 no stacking on a live store promotion (one discount per order).
+# R23 abuse: no paid offers for customers who return a lot or return coupon orders.
+# R24 discount training: last N orders all with a coupon -> no new discount for now.
+# R25 stock: never promote an out-of-stock product. If the CART item is out of stock, the
+#     cart reminder is replaced by CART_ALTERNATIVE (a similar in-stock product), or nothing.
+# R26 uplift group: sleeping dogs get nothing; lost causes get free offers only.
+# R29 free nudges only when their condition holds.
+guards:
+  abuse_min_orders: 3
+  abuse_max_return_rate: 0.30
+  abuse_max_coupon_returns: 2
+  discount_training_last_orders: 3
+  points_update_min_balance: 200
+  replenish_categories: [Grocery, Beauty]
+
+# ---- Coupon codes ---------------------------------------------------------------
+# Every paid offer gets a unique, single-use code tied to the customer (src/coupons.py).
+# A code used by anyone else, twice, or after expiry is refused and logged as misuse.
+coupon_codes:
+  prefix: CPN
+  length: 8
+
+# ---- Feedback and human review ----------------------------------------------------
+feedback:                          # R28: from the message buttons (src/consent.py)
+  fewer_offers_days: 60            # "Fewer offers": paid offers at most one a week, for 60 days
+  fewer_offers_min_hours: 168      #   (168h = the minimum gap between PAID offers)
+  not_interested_suppress_days: 30 # "Not interested": that offer type is not sent again for 30 days
+review:                            # flag a decision for a human when any of these hold
+  high_value_inr: 300
+  budget_near_pct: 90
+  complaint_keywords: [complaint, fraud, scam, harass, spam, stop messaging, unsubscribe, legal, police]
+
+# ---- Delivery (src/delivery.py) ----------------------------------------------------
+# Telegram is the real delivery channel for classmates. email, sms, push and whatsapp exist
+# in the data and consent checks but are SIMULATED (no sender is connected).
+automation:                        # decisions without anyone pressing a button (run_automation.py / preview.py)
+  tick_seconds: 30                 # how often due events, the daily check and sending are looked at
+  daily_hour: 8                    # the daily check of every customer runs once a day at this hour (IST)
+  daily_catch_up: false            # true: if the hour was missed (server off), run as soon as it starts
+  daily_skip_hours: 20             # customers decided this recently are skipped by the daily check
+  use_agent: true                  # AI first for automatic decisions (rules if it fails or is off)
+  cart_wait_minutes: 60            # a cart counts as abandoned after this long without an order
+  bundle_after_days: 3             # "bought together" tip this many days after an order
+  send_max_age_hours: 24           # READY offers older than this are stale and never sent
+
+delivery:
+  mode: dry_run                   # dry_run = log what would be sent; live = really send
+  kill_switch: false
+  default_channel: telegram
+  channels: [telegram, email, sms, push, whatsapp]
+
+# ---- Learning ---------------------------------------------------------------------
+exploration:                       # R27: try a random ALLOWED offer sometimes, to learn what works
+  enabled: true
+  rate: 0.05
+
+# ---- Measurement ----------------------------------------------------------------
+holdout_pct: 15                    # R18: this % of customers never get offers (control group)
+holdout_salt: offers-2026          # assignment = hash(salt + customer_id): stable, never per decision
+# With small groups (e.g. 20 classmates -> ~3 controls) differences are not statistically
+# meaningful; evaluate.py reports the control count per segment and warns when too small.

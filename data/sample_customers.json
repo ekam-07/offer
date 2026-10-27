@@ -1,0 +1,67 @@
+[
+  {"customer_id": "C001", "name": "Priya Sharma", "persona": "loyal", "opted_in": true,
+   "tenure_days": 700, "orders_total": 40, "recency_days": 5, "avg_gap_days": 12, "frequency_90d": 8,
+   "aov": 1800, "coupon_rate": 0.05, "top_category": "Fashion",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 1,
+   "points_balance": 2400, "points_expiring_30d": 100, "tier": "Gold", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C002", "name": "Rahul Verma", "persona": "deal_seeker", "opted_in": true,
+   "tenure_days": 400, "orders_total": 18, "recency_days": 20, "avg_gap_days": 20, "frequency_90d": 4,
+   "aov": 1200, "coupon_rate": 0.75, "top_category": "Electronics",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 2,
+   "points_balance": 300, "points_expiring_30d": 50, "tier": "Silver", "days_since_discount_redeemed": 30},
+
+  {"customer_id": "C003", "name": "Ananya Iyer", "persona": "at_risk", "opted_in": true,
+   "tenure_days": 500, "orders_total": 15, "recency_days": 48, "avg_gap_days": 14, "frequency_90d": 1,
+   "aov": 2200, "coupon_rate": 0.2, "top_category": "Beauty",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 0,
+   "points_balance": 800, "points_expiring_30d": 0, "tier": "Silver", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C004", "name": "Vikram Singh", "persona": "dormant", "opted_in": true,
+   "tenure_days": 650, "orders_total": 9, "recency_days": 130, "avg_gap_days": 30, "frequency_90d": 0,
+   "aov": 1500, "coupon_rate": 0.3, "top_category": "Home",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 0,
+   "points_balance": 450, "points_expiring_30d": 0, "tier": "Bronze", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C005", "name": "Sneha Patel", "persona": "new", "opted_in": true,
+   "tenure_days": 6, "orders_total": 0, "recency_days": 0, "avg_gap_days": 0, "frequency_90d": 0,
+   "aov": 0, "coupon_rate": 0.0, "top_category": "Fashion",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 4,
+   "points_balance": 0, "points_expiring_30d": 0, "tier": "Bronze", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C006", "name": "Arjun Mehta", "persona": "cart_abandoner", "opted_in": true,
+   "tenure_days": 300, "orders_total": 6, "recency_days": 25, "avg_gap_days": 40, "frequency_90d": 2,
+   "aov": 2500, "coupon_rate": 0.3, "top_category": "Electronics",
+   "cart_abandoned_hours_ago": 6, "abandoned_cart_value": 3499, "abandoned_cart_item": "Noise Cancelling Headphones", "browse_no_buy_14d": 3,
+   "points_balance": 250, "points_expiring_30d": 0, "tier": "Silver", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C007", "name": "Kavya Reddy", "persona": "vip", "opted_in": true,
+   "tenure_days": 900, "orders_total": 22, "recency_days": 10, "avg_gap_days": 25, "frequency_90d": 4,
+   "aov": 6500, "coupon_rate": 0.1, "top_category": "Electronics",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 1,
+   "points_balance": 5200, "points_expiring_30d": 200, "tier": "Platinum", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C008", "name": "Rohan Gupta", "persona": "window_shopper", "opted_in": true,
+   "tenure_days": 200, "orders_total": 2, "recency_days": 60, "avg_gap_days": 50, "frequency_90d": 0,
+   "aov": 800, "coupon_rate": 0.0, "top_category": "Mobiles",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 7,
+   "points_balance": 40, "points_expiring_30d": 0, "tier": "Bronze", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C009", "name": "Meera Nair", "persona": "points_rich", "opted_in": true,
+   "tenure_days": 600, "orders_total": 12, "recency_days": 18, "avg_gap_days": 20, "frequency_90d": 3,
+   "aov": 1400, "coupon_rate": 0.2, "top_category": "Books",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 1,
+   "points_balance": 1500, "points_expiring_30d": 900, "tier": "Gold", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C010", "name": "Aditya Kumar", "persona": "at_risk_opted_out", "opted_in": false,
+   "tenure_days": 450, "orders_total": 11, "recency_days": 50, "avg_gap_days": 15, "frequency_90d": 1,
+   "aov": 1600, "coupon_rate": 0.4, "top_category": "Fashion",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 0,
+   "points_balance": 600, "points_expiring_30d": 0, "tier": "Silver", "days_since_discount_redeemed": null},
+
+  {"customer_id": "C011", "name": "Neha Joshi", "persona": "at_risk_recent_redeemer", "opted_in": true,
+   "tenure_days": 380, "orders_total": 10, "recency_days": 40, "avg_gap_days": 15, "frequency_90d": 1,
+   "aov": 1900, "coupon_rate": 0.4, "top_category": "Fashion",
+   "cart_abandoned_hours_ago": null, "abandoned_cart_value": 0, "abandoned_cart_item": null, "browse_no_buy_14d": 2,
+   "points_balance": 700, "points_expiring_30d": 0, "tier": "Silver", "days_since_discount_redeemed": 5}
+]

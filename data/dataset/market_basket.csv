@@ -1,0 +1,141 @@
+item_type,bought_with,orders_together,support,confidence,lift
+Ikigai,The Alchemist,17,0.0053,0.218,8.98
+The Alchemist,Ikigai,17,0.0053,0.218,8.98
+Indian History Atlas,The Alchemist,19,0.0059,0.204,8.42
+The Alchemist,Indian History Atlas,19,0.0059,0.244,8.42
+Atomic Habits,Ikigai,16,0.005,0.2,8.24
+Ikigai,Atomic Habits,16,0.005,0.205,8.24
+Atomic Habits,Indian History Atlas,19,0.0059,0.237,8.21
+Indian History Atlas,Atomic Habits,19,0.0059,0.204,8.21
+Masala Combo,Olive Oil 1L,25,0.0078,0.253,8.2
+Olive Oil 1L,Masala Combo,25,0.0078,0.253,8.2
+Basmati Rice 5kg,Green Tea,30,0.0093,0.275,8.19
+Green Tea,Basmati Rice 5kg,30,0.0093,0.278,8.19
+Basmati Rice 5kg,Dry Fruits Pack,29,0.009,0.266,8.14
+Dry Fruits Pack,Basmati Rice 5kg,29,0.009,0.276,8.14
+Ikigai,Indian History Atlas,18,0.0056,0.231,7.97
+Indian History Atlas,Ikigai,18,0.0056,0.194,7.97
+Atomic Habits,The Alchemist,15,0.0047,0.188,7.72
+The Alchemist,Atomic Habits,15,0.0047,0.192,7.72
+Dry Fruits Pack,Masala Combo,24,0.0075,0.229,7.42
+Masala Combo,Dry Fruits Pack,24,0.0075,0.242,7.42
+Python Crash Course,The Alchemist,13,0.004,0.178,7.34
+The Alchemist,Python Crash Course,13,0.004,0.167,7.34
+Atomic Habits,Python Crash Course,13,0.004,0.163,7.15
+Python Crash Course,Atomic Habits,13,0.004,0.178,7.15
+Basmati Rice 5kg,Olive Oil 1L,23,0.0072,0.211,6.85
+Olive Oil 1L,Basmati Rice 5kg,23,0.0072,0.232,6.85
+Bedsheet Set,Water Purifier,32,0.01,0.258,6.8
+Water Purifier,Bedsheet Set,32,0.01,0.262,6.8
+Indian History Atlas,Python Crash Course,14,0.0044,0.151,6.63
+Python Crash Course,Indian History Atlas,14,0.0044,0.192,6.63
+Screen Guard,Smartphone 5G,24,0.0075,0.22,6.49
+Smartphone 5G,Screen Guard,24,0.0075,0.22,6.49
+Phone Case,Smartphone 5G,24,0.0075,0.22,6.49
+Smartphone 5G,Phone Case,24,0.0075,0.22,6.49
+Bedsheet Set,Table Lamp,32,0.01,0.258,6.43
+Table Lamp,Bedsheet Set,32,0.01,0.248,6.43
+Basmati Rice 5kg,Masala Combo,21,0.0065,0.193,6.25
+Masala Combo,Basmati Rice 5kg,21,0.0065,0.212,6.25
+Dry Fruits Pack,Green Tea,22,0.0068,0.21,6.23
+Green Tea,Dry Fruits Pack,22,0.0068,0.204,6.23
+Ikigai,Python Crash Course,11,0.0034,0.141,6.21
+Python Crash Course,Ikigai,11,0.0034,0.151,6.21
+Green Tea,Olive Oil 1L,20,0.0062,0.185,6.01
+Olive Oil 1L,Green Tea,20,0.0062,0.202,6.01
+Fast Charger,Smartphone 5G,27,0.0084,0.201,5.94
+Smartphone 5G,Fast Charger,27,0.0084,0.248,5.94
+Smartphone 5G,Wireless Earbuds,26,0.0081,0.239,5.94
+Wireless Earbuds,Smartphone 5G,26,0.0081,0.202,5.94
+Hair Dryer,Perfume,36,0.0112,0.252,5.86
+Perfume,Hair Dryer,36,0.0112,0.261,5.86
+Non-stick Cookware Set,Storage Box Set,36,0.0112,0.273,5.8
+Storage Box Set,Non-stick Cookware Set,36,0.0112,0.238,5.8
+Fast Charger,Wireless Earbuds,31,0.0096,0.231,5.76
+Wireless Earbuds,Fast Charger,31,0.0096,0.24,5.76
+Fast Charger,Phone Case,26,0.0081,0.194,5.72
+Phone Case,Fast Charger,26,0.0081,0.239,5.72
+Phone Case,Screen Guard,21,0.0065,0.193,5.68
+Screen Guard,Phone Case,21,0.0065,0.193,5.68
+Dry Fruits Pack,Olive Oil 1L,18,0.0056,0.171,5.56
+Olive Oil 1L,Dry Fruits Pack,18,0.0056,0.182,5.56
+Green Tea,Masala Combo,18,0.0056,0.167,5.41
+Masala Combo,Green Tea,18,0.0056,0.182,5.41
+Non-stick Cookware Set,Water Purifier,27,0.0084,0.205,5.39
+Water Purifier,Non-stick Cookware Set,27,0.0084,0.221,5.39
+Storage Box Set,Table Lamp,32,0.01,0.212,5.28
+Table Lamp,Storage Box Set,32,0.01,0.248,5.28
+Hair Dryer,Sunscreen SPF 50,32,0.01,0.224,5.14
+Sunscreen SPF 50,Hair Dryer,32,0.01,0.229,5.14
+Storage Box Set,Water Purifier,29,0.009,0.192,5.06
+Water Purifier,Storage Box Set,29,0.009,0.238,5.06
+Face Serum,Perfume,33,0.0103,0.216,5.02
+Perfume,Face Serum,33,0.0103,0.239,5.02
+Smart Watch,Wireless Mouse,28,0.0087,0.209,5.01
+Wireless Mouse,Smart Watch,28,0.0087,0.209,5.01
+Bluetooth Speaker,Wireless Mouse,27,0.0084,0.206,4.94
+Wireless Mouse,Bluetooth Speaker,27,0.0084,0.201,4.94
+Fast Charger,Screen Guard,22,0.0068,0.164,4.84
+Screen Guard,Fast Charger,22,0.0068,0.202,4.84
+Lipstick,Perfume,30,0.0093,0.207,4.82
+Perfume,Lipstick,30,0.0093,0.217,4.82
+Screen Guard,Wireless Earbuds,21,0.0065,0.193,4.8
+Wireless Earbuds,Screen Guard,21,0.0065,0.163,4.8
+Bluetooth Speaker,Smart Watch,26,0.0081,0.198,4.76
+Smart Watch,Bluetooth Speaker,26,0.0081,0.194,4.76
+Power Bank,Smart Watch,28,0.0087,0.197,4.73
+Smart Watch,Power Bank,28,0.0087,0.209,4.73
+Table Lamp,Water Purifier,23,0.0072,0.178,4.7
+Water Purifier,Table Lamp,23,0.0072,0.189,4.7
+Bluetooth Speaker,Power Bank,27,0.0084,0.206,4.66
+Power Bank,Bluetooth Speaker,27,0.0084,0.19,4.66
+Phone Case,Wireless Earbuds,20,0.0062,0.183,4.57
+Wireless Earbuds,Phone Case,20,0.0062,0.155,4.57
+Bluetooth Speaker,Noise Cancelling Headphones,25,0.0078,0.191,4.44
+Noise Cancelling Headphones,Bluetooth Speaker,25,0.0078,0.181,4.44
+Power Bank,Wireless Mouse,26,0.0081,0.183,4.39
+Wireless Mouse,Power Bank,26,0.0081,0.194,4.39
+Face Serum,Lipstick,30,0.0093,0.196,4.34
+Lipstick,Face Serum,30,0.0093,0.207,4.34
+Hair Dryer,Lipstick,28,0.0087,0.196,4.34
+Lipstick,Hair Dryer,28,0.0087,0.193,4.34
+Noise Cancelling Headphones,Smart Watch,25,0.0078,0.181,4.34
+Smart Watch,Noise Cancelling Headphones,25,0.0078,0.187,4.34
+Non-stick Cookware Set,Table Lamp,23,0.0072,0.174,4.34
+Table Lamp,Non-stick Cookware Set,23,0.0072,0.178,4.34
+Bedsheet Set,Non-stick Cookware Set,22,0.0068,0.177,4.32
+Non-stick Cookware Set,Bedsheet Set,22,0.0068,0.167,4.32
+Perfume,Sunscreen SPF 50,25,0.0078,0.181,4.16
+Sunscreen SPF 50,Perfume,25,0.0078,0.179,4.16
+Face Serum,Sunscreen SPF 50,27,0.0084,0.176,4.05
+Sunscreen SPF 50,Face Serum,27,0.0084,0.193,4.05
+Noise Cancelling Headphones,Wireless Mouse,23,0.0072,0.167,4.0
+Wireless Mouse,Noise Cancelling Headphones,23,0.0072,0.172,4.0
+Face Serum,Hair Dryer,27,0.0084,0.176,3.97
+Hair Dryer,Face Serum,27,0.0084,0.189,3.97
+Noise Cancelling Headphones,Power Bank,23,0.0072,0.167,3.77
+Power Bank,Noise Cancelling Headphones,23,0.0072,0.162,3.77
+Bedsheet Set,Storage Box Set,21,0.0065,0.169,3.6
+Storage Box Set,Bedsheet Set,21,0.0065,0.139,3.6
+Lipstick,Sunscreen SPF 50,22,0.0068,0.152,3.48
+Sunscreen SPF 50,Lipstick,22,0.0068,0.157,3.48
+Denim Jacket,Running Shoes,66,0.0205,0.237,2.86
+Running Shoes,Denim Jacket,66,0.0205,0.248,2.86
+Leather Handbag,Running Shoes,53,0.0165,0.229,2.77
+Running Shoes,Leather Handbag,53,0.0165,0.199,2.77
+Cotton Kurta,Denim Jacket,59,0.0184,0.223,2.57
+Denim Jacket,Cotton Kurta,59,0.0184,0.211,2.57
+Denim Jacket,Leather Handbag,51,0.0159,0.183,2.54
+Leather Handbag,Denim Jacket,51,0.0159,0.221,2.54
+Cotton Kurta,Running Shoes,55,0.0171,0.208,2.52
+Running Shoes,Cotton Kurta,55,0.0171,0.207,2.52
+Cotton Kurta,Graphic T-Shirt,56,0.0174,0.212,2.47
+Graphic T-Shirt,Cotton Kurta,56,0.0174,0.203,2.47
+Cotton Kurta,Leather Handbag,45,0.014,0.17,2.37
+Leather Handbag,Cotton Kurta,45,0.014,0.195,2.37
+Graphic T-Shirt,Running Shoes,52,0.0162,0.188,2.28
+Running Shoes,Graphic T-Shirt,52,0.0162,0.195,2.28
+Graphic T-Shirt,Leather Handbag,41,0.0128,0.149,2.07
+Leather Handbag,Graphic T-Shirt,41,0.0128,0.177,2.07
+Denim Jacket,Graphic T-Shirt,47,0.0146,0.168,1.96
+Graphic T-Shirt,Denim Jacket,47,0.0146,0.17,1.96

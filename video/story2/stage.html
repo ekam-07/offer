@@ -1,0 +1,644 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=block" rel="stylesheet">
+<style>
+  /* A 1920x1080 stage. Everything is positioned by renderAt(t): no CSS transitions, so every frame is
+     exactly determined by the time t (no jitter). */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: clip; background: #04070c; }
+  body { font-family: Inter, "Segoe UI", sans-serif; color: #eef3fb; -webkit-font-smoothing: antialiased; }
+  .abs { position: absolute; }
+  #root { position: absolute; inset: 0; will-change: transform; }
+  #bg { position: absolute; inset: 0; overflow: hidden; }
+  .glow { position: absolute; border-radius: 50%; filter: blur(150px); opacity: .6; will-change: transform; }
+  #grid { position: absolute; inset: 0; opacity: .28;
+          background-image: linear-gradient(rgba(120,200,190,.07) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(120,200,190,.07) 1px, transparent 1px);
+          background-size: 64px 64px; -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%); }
+  #vig { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.55) 100%); }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+  .layer { position: absolute; inset: 0; opacity: 0; }
+  .hl { background: linear-gradient(90deg, #2ee6b8, #38bdf8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .red { color: #ff5a5f; }
+  .kicker { font-size: 22px; font-weight: 800; letter-spacing: .42em; color: #2ee6b8; text-transform: uppercase; }
+
+  /* ---- hook ---- */
+  .hk { position: absolute; left: 0; width: 1920px; text-align: center; font-weight: 900; letter-spacing: -.03em; }
+  #h1 { top: 430px; font-size: 104px; }
+  #h1 span, #q span { display: inline-block; margin: 0 .13em; will-change: transform; }
+  #h2 { top: 330px; font-size: 300px; line-height: 1; letter-spacing: -.04em;
+        background: linear-gradient(180deg, #ff8a5c, #ff3d5a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #h2b { top: 690px; font-size: 40px; font-weight: 700; color: #ffb4a8; letter-spacing: .3em; }
+  #tix { position: absolute; left: 0; width: 1920px; top: 380px; display: flex; justify-content: center; gap: 60px; }
+  .ticket { position: relative; width: 400px; height: 240px; border-radius: 26px; background: linear-gradient(135deg, #ffb347, #ff7a3d);
+            color: #2a1205; box-shadow: 0 30px 80px rgba(0,0,0,.5); display: flex; flex-direction: column; justify-content: center; padding-left: 44px; }
+  .ticket::before, .ticket::after { content: ""; position: absolute; left: 290px; width: 40px; height: 40px; border-radius: 50%; background: #04070c; }
+  .ticket::before { top: -20px; } .ticket::after { bottom: -20px; }
+  .ticket .tl { font-size: 22px; font-weight: 800; letter-spacing: .3em; opacity: .7; }
+  .ticket .tv { font-size: 96px; font-weight: 900; letter-spacing: -.03em; line-height: 1; }
+  .ticket .tv small { font-size: 34px; margin-left: 8px; }
+  .stamp { position: absolute; left: 30px; top: 60px; padding: 10px 18px; border: 6px solid; border-radius: 14px; font-size: 34px; font-weight: 900;
+           letter-spacing: .06em; line-height: 1.05; text-align: center; background: rgba(255,255,255,.88); transform: rotate(-12deg); opacity: 0; }
+  .stamp.bad { color: #d4142a; border-color: #d4142a; } .stamp.good { color: #0b8f63; border-color: #0b8f63; left: 60px; top: 70px; }
+  #tixcap { top: 720px; font-size: 56px; font-weight: 800; }
+  #gridlbl { top: 200px; font-size: 54px; font-weight: 800; }
+  #dots { position: absolute; left: 210px; top: 300px; }
+  #cnt { top: 790px; font-size: 150px; font-weight: 900; color: #ff4d5e; letter-spacing: -.03em; text-shadow: 0 0 60px rgba(255,60,80,.45); }
+  #stac { position: absolute; left: 0; width: 1920px; top: 210px; text-align: center; }
+  #stac div { font-size: 200px; font-weight: 900; letter-spacing: -.03em; line-height: 1.05; opacity: 0; }
+  #notif { position: absolute; left: 510px; top: 120px; width: 900px; }
+  .nt { display: flex; align-items: center; gap: 26px; padding: 26px 32px; margin-bottom: 20px; border-radius: 26px; background: rgba(240,244,250,.96); color: #111;
+        box-shadow: 0 24px 60px rgba(0,0,0,.45); opacity: 0; }
+  .nt .ni { width: 84px; height: 84px; border-radius: 16px; display: grid; place-items: center; font-size: 34px; background: #ffe1d6; flex: none; }
+  .nt b { display: block; font-size: 40px; font-weight: 800; } .nt small { display: block; font-size: 27px; color: #56606d; margin-top: 2px; }
+  #waitlbl { top: 860px; font-size: 64px; font-weight: 900; }
+  #q { top: 340px; font-size: 130px; line-height: 1.12; padding: 0 140px; }
+
+  /* ---- reveal ---- */
+  #rv { position: absolute; left: 0; width: 1920px; top: 360px; display: flex; flex-direction: column; align-items: center; gap: 30px; }
+  .logo { width: 150px; height: 150px; border-radius: 38px; background: linear-gradient(135deg, #2ee6b8, #38bdf8);
+          display: grid; place-items: center; box-shadow: 0 20px 80px rgba(46,230,184,.55); }
+  .logo svg { width: 88px; height: 88px; }
+  #rv .nm { font-size: 128px; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+
+  /* ---- app window ---- */
+  #camera { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; will-change: transform, filter; }
+  #window { position: absolute; left: 216px; top: 70px; width: 1488px; border-radius: 18px; overflow: hidden;
+            background: #0b111b; border: 1px solid rgba(255,255,255,.10); box-shadow: 0 40px 120px rgba(0,0,0,.6), 0 0 0 1px rgba(46,230,184,.06); }
+  #chrome { height: 44px; display: flex; align-items: center; padding: 0 18px; gap: 9px; background: #0f1724; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  #url { margin: 0 auto; width: 520px; height: 28px; border-radius: 8px; background: #070b12; color: #b8c4d6; font-size: 15px;
+         display: flex; align-items: center; justify-content: center; gap: 8px; }
+  #app { display: block; width: 1488px; height: 837px; border: 0; background: #12151b; }
+  #ring { position: absolute; border-radius: 14px; border: 3px solid #2ee6b8; opacity: 0; }
+  #cursor { position: absolute; width: 32px; height: 32px; margin: -4px 0 0 -4px; opacity: 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  #ripple { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 3px solid #2ee6b8; opacity: 0; }
+  .callout { position: absolute; display: flex; align-items: center; gap: 16px; padding: 16px 24px 16px 16px; border-radius: 18px;
+             background: rgba(7,12,20,.94); border: 2px solid rgba(46,230,184,.55); box-shadow: 0 22px 60px rgba(0,0,0,.55), 0 0 40px rgba(46,230,184,.18);
+             opacity: 0; white-space: nowrap; }
+  .callout .ci { width: 50px; height: 50px; border-radius: 13px; background: rgba(46,230,184,.16); display: grid; place-items: center; font-size: 28px; }
+  .callout b { display: block; font-size: 27px; font-weight: 800; letter-spacing: -.01em; }
+  .callout small { display: block; font-size: 19px; color: #a7b5c9; margin-top: 3px; font-weight: 500; }
+
+  /* HUD + step wipe */
+  #hud { position: absolute; left: 216px; top: 16px; display: flex; align-items: center; gap: 16px; opacity: 0; }
+  .live { display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-radius: 999px; background: rgba(255,60,80,.14);
+          border: 1px solid rgba(255,90,100,.5); font-size: 16px; font-weight: 800; letter-spacing: .18em; color: #ff8a92; }
+  .live i { width: 10px; height: 10px; border-radius: 50%; background: #ff4d5e; display: block; }
+  #hud-step { font-size: 20px; font-weight: 700; color: #dbe4f1; } #hud-step b { color: #2ee6b8; margin-right: 10px; }
+  #prog { position: absolute; right: 216px; top: 30px; display: flex; gap: 6px; opacity: 0; }
+  #prog i { width: 34px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.14); display: block; }
+  #prog i.on { background: #2ee6b8; box-shadow: 0 0 10px rgba(46,230,184,.6); }
+  #wipe { position: absolute; left: -340px; top: -100px; width: 2600px; height: 1280px; transform: translateX(3000px) skewX(-14deg);
+          background: linear-gradient(90deg, #2ee6b8 0 26px, #07101a 26px calc(100% - 26px), #38bdf8 calc(100% - 26px)); }
+  #wipe-in { position: absolute; left: 0; width: 1920px; top: 380px; text-align: center; opacity: 0; }
+  #wipe-n { font-size: 30px; font-weight: 800; letter-spacing: .4em; color: #2ee6b8; }
+  #wipe-t { font-size: 124px; font-weight: 900; letter-spacing: -.035em; margin-top: 10px; }
+  #wipe-s { font-size: 24px; font-weight: 700; letter-spacing: .3em; color: #6b7b93; margin-top: 18px; }
+
+  /* ---- phone ---- */
+  #phone { position: absolute; left: 1120px; top: 60px; width: 480px; height: 960px; border-radius: 64px; background: #0b0f16;
+           border: 3px solid #2a3344; box-shadow: 0 40px 120px rgba(0,0,0,.6), inset 0 0 0 10px #111824; overflow: hidden; }
+  #tg { position: absolute; inset: 12px; border-radius: 54px; overflow: hidden; background: linear-gradient(160deg, #9fc49a 0%, #6fa77d 45%, #4f8f72 100%); }
+  #tg .pattern { position: absolute; inset: 0; opacity: .13; font-size: 30px; line-height: 64px; letter-spacing: 28px; color: #0d3b26; word-break: break-all; padding: 10px; }
+  #tg-head { position: absolute; left: 0; right: 0; top: 0; height: 128px; background: rgba(255,255,255,.92); display: flex; align-items: center; gap: 14px; padding: 46px 22px 0; color: #111; }
+  #tg-head .av { width: 56px; height: 56px; border-radius: 50%; background: #34a0e8; display: grid; place-items: center; font-size: 34px; }
+  #tg-head b { font-size: 25px; display: block; } #tg-head small { font-size: 17px; color: #6c7a89; }
+  #tg-body { position: absolute; left: 0; right: 0; top: 128px; bottom: 82px; overflow: hidden; }
+  #tg-scroll { position: absolute; left: 0; right: 0; bottom: 10px; padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+  .tg-date { align-self: center; background: rgba(40,80,60,.45); color: #fff; font-size: 17px; font-weight: 600; padding: 6px 14px; border-radius: 14px; }
+  .tg-msg { align-self: flex-start; max-width: 92%; background: #fff; color: #111; border-radius: 20px 20px 20px 6px; padding: 14px 16px 26px;
+            font-size: 20px; line-height: 1.38; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,.12); transform-origin: 0 100%; }
+  .tg-msg .tm { position: absolute; right: 14px; bottom: 6px; font-size: 13px; color: #8a96a3; }
+  .tg-msg .code { font-weight: 700; color: #1a7f5a; }
+  .tg-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; max-width: 92%; }
+  .tg-btns div { background: rgba(30,70,50,.35); color: #fff; font-size: 16px; font-weight: 600; border-radius: 12px; padding: 10px 4px; text-align: center; }
+  .tg-typing { align-self: flex-start; background: #fff; border-radius: 18px; padding: 12px 16px; display: flex; gap: 6px; }
+  .tg-typing i { width: 9px; height: 9px; border-radius: 50%; background: #9aa6b2; display: block; }
+  #tg-input { position: absolute; left: 14px; right: 14px; bottom: 14px; height: 58px; border-radius: 30px; background: #fff; display: flex; align-items: center; padding: 0 22px; color: #9aa6b2; font-size: 20px; }
+  .ann { position: absolute; left: 216px; width: 800px; display: flex; gap: 24px; align-items: center; padding: 26px 30px; border-radius: 26px;
+         background: rgba(14,22,34,.9); border: 2px solid rgba(255,255,255,.08); opacity: 0; }
+  .ann .n { width: 74px; height: 74px; border-radius: 20px; display: grid; place-items: center; font-size: 38px; flex: none; }
+  .ann b { font-size: 38px; display: block; font-weight: 900; letter-spacing: -.02em; } .ann small { display: block; font-size: 23px; color: #a7b5c9; margin-top: 6px; line-height: 1.35; }
+  .ann .price { margin-left: auto; font-size: 54px; font-weight: 900; }
+  #days { position: absolute; left: 216px; top: 500px; width: 800px; opacity: 0; }
+  #days .row { display: flex; gap: 12px; margin-top: 14px; }
+  #days .d { flex: 1; height: 70px; border-radius: 16px; background: rgba(14,22,34,.9); border: 2px solid rgba(255,255,255,.08);
+             display: grid; place-items: center; font-size: 22px; font-weight: 800; color: #6b7b93; }
+  #days .d.on { color: #ff8a92; border-color: rgba(255,90,100,.6); background: rgba(255,60,80,.10); }
+
+  /* ---- proof ---- */
+  .src { position: absolute; top: 250px; width: 520px; height: 150px; border-radius: 24px; padding: 0 30px; display: flex; align-items: center; gap: 22px;
+         background: rgba(14,22,34,.9); border: 2px solid rgba(46,230,184,.3); opacity: 0; }
+  .src .si { width: 72px; height: 72px; border-radius: 18px; background: rgba(46,230,184,.14); display: grid; place-items: center; font-size: 38px; flex: none; }
+  .src b { display: block; font-size: 30px; font-weight: 800; } .src small { display: block; font-size: 20px; color: #93a3bb; margin-top: 4px; }
+  .hb { position: absolute; left: 150px; height: 96px; width: 1100px; }
+  .hb .lb { position: absolute; left: 0; top: 0; font-size: 26px; font-weight: 700; color: #a7b5c9; }
+  .hb .tr { position: absolute; left: 0; top: 40px; height: 56px; width: 0; border-radius: 12px; }
+  .hb .vl { position: absolute; top: 44px; font-size: 40px; font-weight: 900; white-space: nowrap; }
+  #x3 { position: absolute; left: 1420px; top: 470px; font-size: 260px; font-weight: 900; letter-spacing: -.05em; line-height: 1; opacity: 0; }
+  #x3s { position: absolute; left: 1435px; top: 750px; font-size: 30px; font-weight: 700; color: #c7d3e3; opacity: 0; line-height: 1.3; }
+  #p88 { position: absolute; left: 150px; top: 870px; display: flex; align-items: baseline; gap: 20px; opacity: 0; }
+  #p88 b { font-size: 92px; font-weight: 900; letter-spacing: -.03em; } #p88 span { font-size: 36px; font-weight: 700; color: #c7d3e3; }
+
+  /* ---- why we win ---- */
+  .mv { position: absolute; width: 520px; height: 250px; border-radius: 28px; padding: 32px; background: rgba(14,22,34,.92);
+        border: 2px solid rgba(46,230,184,.25); opacity: 0; overflow: hidden; }
+  .mv .ic { width: 78px; height: 78px; border-radius: 22px; background: rgba(46,230,184,.14); display: grid; place-items: center; font-size: 42px; }
+  .mv b { display: block; font-size: 40px; font-weight: 900; letter-spacing: -.02em; margin-top: 22px; }
+  .mv small { display: block; font-size: 23px; color: #93a3bb; margin-top: 8px; }
+
+  /* ---- end ---- */
+  .pill { padding: 12px 22px; border-radius: 999px; font-size: 22px; font-weight: 700; background: rgba(46,230,184,.10);
+          border: 1px solid rgba(46,230,184,.4); color: #bff5e6; }
+
+  /* captions: karaoke, the spoken word lights up */
+  #caption { position: absolute; left: 50%; top: 984px; transform: translateX(-50%); padding: 10px 28px; border-radius: 16px;
+             font-size: 36px; font-weight: 800; letter-spacing: -.01em; white-space: nowrap; background: rgba(4,7,12,.72); opacity: 0; }
+  #caption span { color: rgba(238,243,251,.55); } #caption span.on { color: #fff; } #caption span.now { color: #2ee6b8; }
+</style>
+</head>
+<body>
+<div id="root">
+<div id="bg">
+  <div class="glow" id="g1" style="width:900px;height:700px"></div>
+  <div class="glow" id="g2" style="width:800px;height:600px;background:#0d3550"></div>
+  <div class="glow" id="g3" style="width:700px;height:500px;background:#1d2b55"></div>
+  <div id="grid"></div>
+</div>
+
+<!-- 1. Hook -->
+<div class="layer" id="L-hook">
+  <div class="hk" id="h1"></div>
+  <div class="hk" id="h2">DISCOUNTS</div>
+  <div class="hk" id="h2b">THE SILENT PROFIT KILLER</div>
+  <div id="tix">
+    <div class="ticket" id="tk0"><div class="tl">COUPON</div><div class="tv">₹100<small>OFF</small></div><div class="stamp bad" id="st0">WOULD BUY<br>ANYWAY</div></div>
+    <div class="ticket" id="tk1"><div class="tl">COUPON</div><div class="tv">₹100<small>OFF</small></div><div class="stamp bad" id="st1">WOULD BUY<br>ANYWAY</div></div>
+    <div class="ticket" id="tk2"><div class="tl">COUPON</div><div class="tv">₹100<small>OFF</small></div><div class="stamp good" id="st2">✓ NEW<br>SALE</div></div>
+  </div>
+  <div class="hk" id="tixcap"><span class="red">2 of every 3</span> discounts are wasted</div>
+  <div class="hk" id="gridlbl">3,000 shoppers × <span style="color:#ffb347">₹100 coupon</span></div>
+  <canvas id="dots" width="1500" height="450"></canvas>
+  <div class="hk" id="cnt">−₹0</div>
+  <div id="stac"><div id="sw0">EVERY.</div><div id="sw1">SINGLE.</div><div id="sw2" class="red">WEEK.</div></div>
+  <div id="notif">
+    <div class="nt" id="nt0"><div class="ni">🔥</div><div><b>FLASH SALE · 20% OFF</b><small>Everything. Today only!</small></div></div>
+    <div class="nt" id="nt1"><div class="ni">⏰</div><div><b>Last chance!</b><small>Your coupon ends tonight</small></div></div>
+    <div class="nt" id="nt2"><div class="ni">💸</div><div><b>MEGA SALE starts Friday</b><small>Up to 50% off</small></div></div>
+    <div class="nt" id="nt3"><div class="ni" style="background:#e3e8ef">🔕</div><div><b>Unsubscribed</b><small>Too many messages</small></div></div>
+  </div>
+  <div class="hk" id="waitlbl">⏳ <span style="color:#ffb347">“I'll wait for the next sale.”</span></div>
+  <div class="hk" id="q"></div>
+</div>
+
+<!-- 2. Reveal -->
+<div class="layer" id="L-reveal">
+  <div id="rv"><div class="logo" id="rv-logo"><svg viewBox="0 0 24 24" fill="none" stroke="#06231d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2.8 12.8V2.8h10l7.8 7.8a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.6" fill="#06231d"/><path d="M16 3.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="#06231d" stroke="none"/></svg></div>
+    <div class="nm" id="rv-nm">AI Offer <span class="hl">Engine</span></div>
+    <div class="kicker" id="rv-k" style="font-size:26px">Every offer, only when it pays</div></div>
+</div>
+
+<!-- 3. App in a browser window, moved by the camera -->
+<div class="layer" id="L-app">
+  <div id="camera">
+    <div id="window">
+      <div id="chrome">
+        <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+        <div id="url">🔒 offers.ai-offer-engine.app</div>
+      </div>
+      <iframe id="app" src="about:blank"></iframe>
+    </div>
+  </div>
+  <div id="ring"></div>
+  <div class="callout" id="callout"><div class="ci" id="callout-i"></div><div><b id="callout-b"></b><small id="callout-s"></small></div></div>
+  <div id="ripple"></div>
+  <svg id="cursor" viewBox="0 0 24 24"><path d="M3 2l7.5 19 2.4-7.6L20.5 11z" fill="#fff" stroke="#0b111b" stroke-width="1.4" stroke-linejoin="round"/></svg>
+</div>
+
+<!-- 4. Telegram phone -->
+<div class="layer" id="L-phone">
+  <div class="abs kicker" style="left:216px;top:120px">Real messages · Telegram</div>
+  <div class="abs" style="left:216px;top:160px;width:900px;font-size:50px;font-weight:900;letter-spacing:-.03em;line-height:1.08">A free reminder first.<br><span class="hl">A discount only if they don't buy.</span></div>
+  <div class="ann" id="ann0" style="top:340px"><div class="n" style="background:rgba(46,230,184,.15)">🛒</div>
+    <div><b>Cart reminder</b><small>A friendly nudge. No discount.</small></div><div class="price hl">₹0</div></div>
+  <div id="days"><div style="font-size:28px;color:#dbe4f1;font-weight:800">No purchase…</div>
+    <div class="row"><div class="d" id="d1">Day 1</div><div class="d" id="d2">Day 2</div><div class="d" id="d3">Day 3</div>
+      <div class="d" id="d4">Day 5</div><div class="d" id="d5">Day 7</div></div></div>
+  <div class="ann" id="ann1" style="top:700px"><div class="n" style="background:rgba(251,146,60,.18)">🚚</div>
+    <div><b>Then: free delivery</b><small>Single-use code. Only because it still pays.</small></div><div class="price" style="color:#ffb347">₹60</div></div>
+  <div id="phone"><div id="tg"><div class="pattern">🛒🎁⭐🧺📦💬🛍️🎉🛒🎁⭐🧺📦💬🛍️🎉🛒🎁⭐🧺📦💬🛍️🎉🛒🎁⭐🧺📦💬🛍️🎉🛒🎁⭐🧺📦💬🛍️🎉🛒🎁⭐🧺📦💬🛍️🎉🛒🎁⭐🧺📦💬🛍️🎉🛒🎁⭐🧺📦💬🛍️🎉</div>
+    <div id="tg-head"><span style="font-size:30px;color:#333">←</span><div class="av">🐼</div><div><b>Yesmyboss</b><small>bot</small></div></div>
+    <div id="tg-body"><div id="tg-scroll">
+      <div class="tg-date" id="tgd0">October 27</div>
+      <div class="tg-typing" id="tgt0"><i></i><i></i><i></i></div>
+      <div class="tg-msg" id="tgm0">Hi Karthik, your BrewWell Water Purifier is still waiting in your cart. Come back whenever you're ready to complete your order.<span class="tm">00:35</span></div>
+      <div class="tg-btns" id="tgb0"><div>👍 Interested</div><div>👎 Not inter…</div><div>✋ Stop</div></div>
+      <div class="tg-date" id="tgd1">November 3</div>
+      <div class="tg-typing" id="tgt1"><i></i><i></i><i></i></div>
+      <div class="tg-msg" id="tgm1">Hi Karthik, your BrewWell Water Purifier is still in your cart. Enjoy free delivery on your next order of ₹299 or more in Home, Beauty or Fashion, valid for 5 days. Your personal code: <span class="code">CPN-GCDCVZTA</span> (single use, only for you).<span class="tm">12:00</span></div>
+      <div class="tg-btns" id="tgb1"><div>👍 Interested</div><div>👎 Not inter…</div><div>✋ Stop</div></div>
+    </div></div>
+    <div id="tg-input">😊&nbsp;&nbsp;Message</div>
+  </div></div>
+</div>
+
+<!-- 5. Proof -->
+<div class="layer" id="L-proof">
+  <div class="abs kicker" style="left:150px;top:110px">The proof</div>
+  <div class="abs" style="left:150px;top:150px;font-size:66px;font-weight:900;letter-spacing:-.03em">Tested on <span class="hl">real-calibrated</span> data</div>
+  <div class="src" id="src0" style="left:150px"><div class="si">🏷️</div><div><b>Flipkart prices</b><small>real catalogue &amp; margins</small></div></div>
+  <div class="src" id="src1" style="left:700px"><div class="si">🛒</div><div><b>Real browsing &amp; carts</b><small>RetailRocket store data</small></div></div>
+  <div class="src" id="src2" style="left:1250px"><div class="si">🔬</div><div><b>64,000 shoppers</b><small>Hillstrom offer experiment</small></div></div>
+  <div class="hb" id="hb0" style="top:470px"><div class="lb">10% off to everyone</div><div class="tr" style="background:linear-gradient(90deg,#c2410c,#fb923c)"></div><div class="vl"></div></div>
+  <div class="hb" id="hb1" style="top:590px"><div class="lb">Rules only</div><div class="tr" style="background:linear-gradient(90deg,#1d4ed8,#60a5fa)"></div><div class="vl"></div></div>
+  <div class="hb" id="hb2" style="top:710px"><div class="lb" style="color:#2ee6b8">AI Offer Engine</div><div class="tr" style="background:linear-gradient(90deg,#0f766e,#2ee6b8);box-shadow:0 0 40px rgba(46,230,184,.4)"></div><div class="vl" style="color:#2ee6b8"></div></div>
+  <div id="x3" class="hl">3×</div>
+  <div id="x3s">the profit of a<br>blanket discount</div>
+  <div id="p88"><b class="hl" id="p88v">0%</b><span>less spent on discounts</span></div>
+  <div class="abs" style="left:150px;top:420px;font-size:20px;color:#6b7b93">Extra margin per week vs sending no offers · 200 customers · 1,000 simulated weeks</div>
+</div>
+
+<!-- 6. Why we win -->
+<div class="layer" id="L-mvp">
+  <div class="abs kicker" style="left:150px;top:110px">Why we win</div>
+  <div class="abs" id="mvp-t" style="left:150px;top:150px;font-size:72px;font-weight:900;letter-spacing:-.03em">Built to <span class="hl">earn</span>, not to spam</div>
+  <div id="mvpHost"></div>
+</div>
+
+<!-- 7. End card -->
+<div class="layer" id="L-end">
+  <div class="abs" style="left:0;width:1920px;top:220px;display:flex;justify-content:center"><div class="logo" id="endlogo"><svg viewBox="0 0 24 24" fill="none" stroke="#06231d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2.8 12.8V2.8h10l7.8 7.8a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.6" fill="#06231d"/><path d="M16 3.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="#06231d" stroke="none"/></svg></div></div>
+  <div class="abs" id="e0" style="left:0;width:1920px;top:410px;text-align:center;font-size:120px;font-weight:900;letter-spacing:-.04em">AI Offer <span class="hl">Engine</span></div>
+  <div class="abs" id="e1" style="left:0;width:1920px;top:560px;text-align:center;font-size:44px;color:#c7d3e3;font-weight:600">Every offer, only when it pays.</div>
+  <div class="abs" id="e2" style="left:0;width:1920px;top:650px;display:flex;justify-content:center;gap:14px"></div>
+  <div class="abs" id="e3" style="left:0;width:1920px;top:770px;display:flex;justify-content:center">
+    <div style="padding:20px 44px;border-radius:999px;background:linear-gradient(90deg,#2ee6b8,#38bdf8);color:#04211b;font-size:32px;font-weight:900">Let's build it together → pilot partners &amp; investors</div></div>
+</div>
+
+<!-- step wipe + HUD -->
+<div id="hud"><div class="live"><i id="livedot"></i>LIVE DEMO</div><div id="hud-step"></div></div>
+<div id="prog"></div>
+<div id="wipe"></div>
+<div id="wipe-in"><div id="wipe-n"></div><div id="wipe-t"></div><div id="wipe-s">LIVE DEMO</div></div>
+<div id="caption"></div>
+<div id="vig"></div>
+</div>
+<div id="flash"></div>
+
+<script>
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const easeIn = (x) => Math.pow(clamp(x), 3);
+const back = (x) => { x = clamp(x); const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };  // overshoot
+const lerp = (a, b, k) => a + (b - a) * k;
+const $ = (id) => document.getElementById(id);
+const fade = (t, a, b, dur = .4) => clamp((t - a) / dur) * clamp((b - t) / dur);
+const hash = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+let TL = null, RECTS = {};
+
+function setup(tl) {
+  TL = tl;
+  const H = TL.hook;
+  $("h1").innerHTML = H.h1.map((w, i) => `<span class="${w.hl ? "red" : ""}">${w.text}</span>`).join("");
+  $("q").innerHTML = H.q.map((w, i) => `${i === 4 ? "<br>" : ""}<span class="${w.hl ? "hl" : ""}">${w.text}</span>`).join("");
+  $("mvpHost").innerHTML = TL.mvp.map((c, i) => `<div class="mv" id="mv${i}" style="left:${150 + (i % 3) * 550}px;top:${300 + Math.floor(i / 3) * 290}px">
+      <div class="ic">${c.icon}</div><b>${c.title}</b><small>${c.sub}</small></div>`).join("");
+  $("e2").innerHTML = ["Claude AI decides", "31 rules check", "Never at a loss", "Free nudges first", "Runs automatically"].map((p) => `<div class="pill">${p}</div>`).join("");
+  $("prog").innerHTML = TL.steps.map(() => "<i></i>").join("");
+}
+function setRects(r) { RECTS = r; }
+function sceneT(id) { return TL.scenes[id] || { a: -99, b: -98, voice: -99 }; }
+
+// ---------- camera ----------
+function toStage(r, cam) {
+  return { x: (216 + r.x) * cam.s + cam.tx, y: (114 + r.y) * cam.s + cam.ty, w: r.w * cam.s, h: r.h * cam.s };
+}
+function camAt(t) {
+  const keys = TL.camera;
+  let a = keys[0], b = keys[0];
+  if (t >= keys[keys.length - 1].t) { a = b = keys[keys.length - 1]; }
+  else for (let i = 0; i < keys.length - 1; i++) if (t >= keys[i].t && t < keys[i + 1].t) { a = keys[i]; b = keys[i + 1]; break; }
+  const k = b === a ? 0 : ease((t - a.t) / (b.t - a.t));
+  const f = (key) => {
+    const r = key.target && RECTS[key.target];
+    return r ? [216 + r.x + r.w / 2, 114 + r.y + (key.ay ?? r.h / 2)] : [key.fx ?? 960, key.fy ?? 545];
+  };
+  const [ax, ay] = f(a), [bx, by] = f(b);
+  let s = lerp(a.s, b.s, k), fx = lerp(ax, bx, k), fy = lerp(ay, by, k);
+  // keep the window edges from showing too much empty stage when zoomed
+  let tx = 960 - fx * s, ty = 545 - fy * s;
+  if (s > 1.001) {
+    tx = clamp(tx, 1920 - (216 + 1488 + 30) * s, -(216 - 30) * s);
+    ty = clamp(ty, 1080 - (114 + 837 + 30) * s, -(70 - 30) * s);
+  }
+  return { s, tx, ty };
+}
+function punch(t) {  // a quick zoom punch on every click
+  let p = 0;
+  for (const c of TL.clicks) if (t >= c && t <= c + .32) p = Math.max(p, Math.sin((t - c) / .32 * Math.PI));
+  return p;
+}
+function shakeAt(t) {
+  let x = 0, y = 0;
+  for (const s of TL.shakes) {
+    const k = (t - s.t) / s.d;
+    if (k < 0 || k > 1) continue;
+    const amp = s.a * (1 - k) * (1 - k);
+    x += amp * Math.sin(t * 93.1 + s.t) ; y += amp * Math.cos(t * 71.7 + s.t * 2);
+  }
+  return [x, y];
+}
+
+function renderAt(t) {
+  // the app iframe can scroll its parent (focus / scrollIntoView): keep the stage pinned
+  window.scrollTo(0, 0); document.documentElement.scrollLeft = document.body.scrollLeft = 0;
+  const H = TL.hook, R = sceneT("reveal"), drop = TL.drop;
+  // background: red-tinted problem in the hook, teal after the drop
+  const warm = 1 - clamp((t - drop) / .2);
+  $("g1").style.background = warm > .5 ? "#5c1424" : "#0e5a4c";
+  $("g2").style.background = warm > .5 ? "#3a1030" : "#0d3550";
+  $("g1").style.transform = `translate(${-200 + 160 * Math.sin(t / 6)}px, ${-250 + 100 * Math.cos(t / 7)}px)`;
+  $("g2").style.transform = `translate(${1300 + 160 * Math.cos(t / 7)}px, ${600 + 90 * Math.sin(t / 5)}px)`;
+  $("g3").style.transform = `translate(${700 + 180 * Math.sin(t / 8)}px, ${-100 + 110 * Math.sin(t / 5)}px)`;
+  const [sx, sy] = shakeAt(t);
+  $("root").style.transform = `translate(${sx}px, ${sy}px)`;
+  let fl = 0;
+  for (const f of TL.flashes) if (t >= f.t && t <= f.t + f.d) fl = Math.max(fl, f.s * (1 - (t - f.t) / f.d));
+  $("flash").style.opacity = fl;
+
+  // ---------------- hook ----------------
+  $("L-hook").style.opacity = t < drop ? 1 : 0;
+  if (t < drop + .1) {
+    H.h1.forEach((w, i) => {
+      const el = $("h1").children[i], k = easeOut((t - w.at) / .22);
+      el.style.opacity = k; el.style.transform = `scale(${lerp(1.6, 1, back((t - w.at) / .3))})`;
+      el.style.filter = `blur(${(1 - k) * 10}px)`;
+    });
+    $("h1").style.opacity = t < H.h1out ? 1 : 0;
+    // DISCOUNTS slam with an RGB glitch
+    const d = (t - H.h2) / .25;
+    $("h2").style.opacity = t >= H.h2 && t < H.tix ? 1 : 0;
+    $("h2").style.transform = `scale(${lerp(2.4, 1, easeOut(d))}) translateX(${t - H.h2 < .5 ? (hash(Math.floor(t * 30)) - .5) * 30 : 0}px)`;
+    $("h2").style.filter = t - H.h2 < .5 ? `drop-shadow(${8 * Math.sin(t * 80)}px 0 0 rgba(56,189,248,.8)) drop-shadow(${-8 * Math.sin(t * 80)}px 0 0 rgba(255,60,90,.8))` : "none";
+    $("h2b").style.opacity = t >= H.h2 + .35 && t < H.tix ? easeOut((t - H.h2 - .35) / .3) : 0;
+    $("h2b").style.letterSpacing = `${lerp(.6, .3, easeOut((t - H.h2 - .35) / .6))}em`;
+    // three coupons, two stamped "would buy anyway"
+    const tixOn = t >= H.tix && t < H.grid;
+    $("tix").style.opacity = tixOn ? 1 : 0;
+    $("tixcap").style.opacity = tixOn ? easeOut((t - H.stamps[1] - .2) / .3) : 0;
+    $("tixcap").style.transform = `translateY(${(1 - easeOut((t - H.stamps[1] - .2) / .3)) * 30}px)`;
+    [0, 1, 2].forEach((i) => {
+      const k = (t - H.tix - i * .12) / .35;
+      $("tk" + i).style.opacity = clamp(k * 3);
+      $("tk" + i).style.transform = `translateY(${(1 - back(k)) * 200}px) rotate(${(1 - easeOut(k)) * (i - 1) * 14 + (i - 1) * 2}deg)`;
+      const st = i < 2 ? H.stamps[i] : H.good, sk = (t - st) / .16;
+      $("st" + i).style.opacity = t >= st ? 1 : 0;
+      $("st" + i).style.transform = `rotate(-12deg) scale(${lerp(2.6, 1, easeIn(sk))})`;
+      $("tk" + i).style.filter = i < 2 && t >= st + .1 ? "saturate(.35) brightness(.75)" : "none";
+    });
+    // 3,000 dots, two-thirds turn red, then fall away
+    const gOn = t >= H.grid && t < H.stac;
+    $("dots").style.opacity = gOn ? 1 : 0;
+    $("gridlbl").style.opacity = gOn ? easeOut((t - H.gridlbl) / .3) : 0;
+    $("gridlbl").style.transform = `translateY(${(1 - easeOut((t - H.gridlbl) / .3)) * -20}px)`;
+    $("cnt").style.opacity = gOn && t >= H.red ? 1 : 0;
+    const cv = Math.round(200000 * easeOut((t - H.red) / 1.3));
+    $("cnt").textContent = `−₹${cv.toLocaleString("en-IN")}`;
+    $("cnt").style.transform = `scale(${1 + .06 * Math.max(0, Math.sin((t - H.red) * 18)) * (t < H.red + 1.3 ? 1 : 0)})`;
+    if (gOn) {
+      const cx = $("dots").getContext("2d");
+      cx.clearRect(0, 0, 1500, 450);
+      for (let i = 0; i < 3000; i++) {
+        const col = i % 100, row = Math.floor(i / 100), x = 7.5 + col * 15, y0 = 7.5 + row * 15;
+        const ap = clamp((t - H.grid - col * .006 - row * .004) / .15);
+        if (ap <= 0) continue;
+        const isRed = hash(i) < 2 / 3;
+        const redAt = H.red + hash(i + 999) * 1.0;
+        let y = y0, a = ap;
+        const red = isRed && t >= redAt;
+        if (red && t > H.vanish) { const ft = t - H.vanish - hash(i + 55) * .5; if (ft > 0) { y += 1400 * ft * ft; a *= clamp(1 - ft / .8); } }
+        if (a <= 0) continue;
+        cx.globalAlpha = a;
+        cx.fillStyle = red ? "#ff4d5e" : "#2ee6b8";
+        cx.beginPath(); cx.arc(x, y, 5, 0, 6.283); cx.fill();
+      }
+      cx.globalAlpha = 1;
+    }
+    // EVERY. SINGLE. WEEK.
+    $("stac").style.opacity = t >= H.stac && t < H.notif ? 1 : 0;
+    H.sw.forEach((at, i) => {
+      const k = (t - at) / .18;
+      $("sw" + i).style.opacity = clamp(k * 2);
+      $("sw" + i).style.transform = `scale(${lerp(1.8, 1, easeOut(k))})`;
+    });
+    // notifications pile up, then "I'll wait for the next sale"
+    const nOn = t >= H.notif && t < H.qstart;
+    $("notif").style.opacity = nOn ? 1 : 0;
+    H.nts.forEach((at, i) => {
+      const k = (t - at) / .35;
+      $("nt" + i).style.opacity = clamp(k * 3);
+      $("nt" + i).style.transform = `translateY(${(1 - back(k)) * -80}px) scale(${lerp(.9, 1, easeOut(k))})`;
+    });
+    $("notif").style.filter = t > H.wait ? `blur(${2 * easeOut((t - H.wait) / .4)}px) brightness(${1 - .4 * easeOut((t - H.wait) / .4)})` : "none";
+    $("waitlbl").style.opacity = nOn && t >= H.wait ? easeOut((t - H.wait) / .3) : 0;
+    $("waitlbl").style.transform = `scale(${lerp(1.3, 1, easeOut((t - H.wait) / .3))})`;
+    // the question
+    $("q").style.opacity = t >= H.qstart ? 1 : 0;
+    $("q").style.transform = `scale(${1 + .04 * clamp((t - H.qstart) / 3)})`;
+    H.q.forEach((w, i) => {
+      const el = $("q").querySelectorAll("span")[i], k = easeOut((t - w.at) / .3);
+      el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * 40}px)`; el.style.filter = `blur(${(1 - k) * 8}px)`;
+    });
+  }
+
+  // ---------------- reveal ----------------
+  const rvOut = TL.appIn;
+  $("L-reveal").style.opacity = t >= drop && t < rvOut + .6 ? 1 - easeOut((t - rvOut) / .5) : 0;
+  {
+    const k = (t - drop) / .45;
+    $("rv-logo").style.transform = `scale(${lerp(2.2, 1, back(k))}) rotate(${(1 - easeOut(k)) * -25}deg)`;
+    $("rv-logo").style.opacity = clamp(k * 3);
+    const n = (t - drop - .15) / .4;
+    $("rv-nm").style.opacity = clamp(n * 2); $("rv-nm").style.transform = `scale(${lerp(1.5, 1, easeOut(n))})`;
+    $("rv-nm").style.letterSpacing = `${lerp(.1, -.04, easeOut(n))}em`;
+    const kk = (t - drop - .7) / .4;
+    $("rv-k").style.opacity = clamp(kk); $("rv-k").style.transform = `translateY(${(1 - easeOut(kk)) * 20}px)`;
+    $("rv").style.transform = `scale(${1 + .03 * clamp((t - drop) / 3) + .5 * easeIn((t - rvOut) / .5)})`;
+  }
+
+  // ---------------- app ----------------
+  const wins = TL.appWindows;
+  const w = wins.find(([a, b]) => t >= a - .1 && t <= b + .1);
+  $("L-app").style.opacity = w ? 1 : 0;
+  const zoomAbout = (c, m) => ({ s: c.s * m, tx: 960 - (960 - c.tx) * m, ty: 545 - (545 - c.ty) * m });
+  const cam = zoomAbout(camAt(t), 1 + .022 * punch(t)), prev = zoomAbout(camAt(t - 1 / 30), 1 + .022 * punch(t - 1 / 30));
+  if (w) {
+    // fly in on the reveal: from a small window rising up to full size
+    const appIn = w[0] === TL.appIn ? easeOut((t - TL.appIn) / .7) : 1;
+    const f = zoomAbout(cam, lerp(.5, 1, appIn));
+    $("camera").style.transform = `translate(${f.tx}px, ${f.ty + (1 - appIn) * 260}px) scale(${f.s})`;
+    $("L-app").style.opacity = Math.min(1, appIn * 2);
+    // whip-pan blur from the camera speed (skipped across hidden cuts)
+    const v = Math.hypot(cam.tx - prev.tx, cam.ty - prev.ty) + Math.abs(cam.s - prev.s) * 900;
+    $("camera").style.filter = v > 4 && v < 400 ? `blur(${Math.min(5, (v - 4) * .06)}px)` : "none";
+  }
+
+  // ring + callout
+  const hl = TL.highlights.find((h) => t >= h.a - .3 && t <= h.b + .3);
+  if (w && hl && RECTS[hl.target]) {
+    const r = toStage(RECTS[hl.target], cam), k = fade(t, hl.a, hl.b, .25);
+    const col = hl.tone === "bad" ? "255,77,94" : "46,230,184";
+    const pulse = 1 + .5 * Math.max(0, Math.sin((t - hl.a) * 6));
+    Object.assign($("ring").style, { left: `${r.x - 8}px`, top: `${r.y - 8}px`, width: `${r.w + 16}px`, height: `${r.h + 16}px`,
+      opacity: k * (hl.ring === false ? 0 : 1), borderColor: `rgb(${col})`,
+      boxShadow: `0 0 0 ${6 * pulse}px rgba(${col},.18), 0 0 ${40 * pulse}px rgba(${col},.45)` });
+    if (hl.title) {
+      $("callout-i").textContent = hl.icon; $("callout-b").textContent = hl.title; $("callout-s").textContent = hl.sub || "";
+      const c = $("callout"), cw = c.offsetWidth, ch = c.offsetHeight;
+      c.style.borderColor = `rgba(${col},.6)`;
+      $("callout-i").style.background = `rgba(${col},.16)`;
+      let x = hl.side === "left" ? r.x - cw - 30 : hl.side === "below" ? r.x : hl.side === "above" ? r.x : r.x + r.w + 30;
+      let y = hl.side === "below" ? r.y + r.h + 26 : hl.side === "above" ? r.y - ch - 26 : r.y + r.h / 2 - ch / 2;
+      x = clamp(x, 40, 1880 - cw); y = clamp(y, 90, 960 - ch);
+      if (hl.pos) { x = hl.pos[0]; y = hl.pos[1]; }
+      const pk = (t - hl.a) / .35;
+      Object.assign(c.style, { left: `${x}px`, top: `${y}px`, opacity: k, transform: `scale(${lerp(.7, 1, back(pk))})`,
+        transformOrigin: hl.side === "left" ? "100% 50%" : "0 50%" });
+    } else $("callout").style.opacity = 0;
+  } else { $("ring").style.opacity = 0; $("callout").style.opacity = 0; }
+
+  // cursor
+  const cur = TL.cursor;
+  let cp = null, a = null;
+  for (let i = 0; i < cur.length; i++) if (cur[i].t <= t) a = cur[i];
+  const b = cur.find((c) => c.t > t);
+  const pt = (c) => {
+    if (!c) return null;
+    if (c.target && RECTS[c.target]) { const r = toStage(RECTS[c.target], cam); return { x: r.x + r.w * (c.fx ?? .5), y: r.y + r.h * (c.fy ?? .5) }; }
+    return c.xy ? { x: c.xy[0], y: c.xy[1] } : null;
+  };
+  if (a) {
+    const pa = pt(a), pb = b && b.move ? pt(b) : null;
+    if (pa && pb && t >= b.t - b.move) {
+      const k = ease((t - (b.t - b.move)) / b.move);
+      cp = { x: lerp(pa.x, pb.x, k), y: lerp(pa.y, pb.y, k) - Math.sin(k * Math.PI) * 40 };
+    } else cp = pa;
+  }
+  const curVis = w && TL.cursorWindows.some(([s, e]) => t >= s && t <= e);
+  $("cursor").style.opacity = cp && curVis ? 1 : 0;
+  if (cp) { $("cursor").style.left = `${cp.x}px`; $("cursor").style.top = `${cp.y}px`; }
+  const click = TL.clicks.find((c) => t >= c && t <= c + .45);
+  if (click !== undefined && cp && curVis) {
+    const k = (t - click) / .45;
+    Object.assign($("ripple").style, { left: `${cp.x}px`, top: `${cp.y}px`, opacity: 1 - k, transform: `scale(${1 + k * 3})` });
+    $("cursor").style.transform = `scale(${1 - .2 * Math.sin(k * Math.PI)})`;
+  } else { $("ripple").style.opacity = 0; $("cursor").style.transform = "none"; }
+
+  // HUD + progress during the demo
+  const step = TL.steps.findLast ? TL.steps.findLast((s) => t >= s.t) : [...TL.steps].reverse().find((s) => t >= s.t);
+  const demoOn = t >= TL.demo[0] && t <= TL.demo[1];
+  $("hud").style.opacity = demoOn ? 1 : 0; $("prog").style.opacity = demoOn ? 1 : 0;
+  if (step) $("hud-step").innerHTML = `<b>${String(step.n).padStart(2, "0")} / ${TL.steps.length}</b>${step.title}`;
+  $("livedot").style.opacity = .35 + .65 * (Math.sin(t * 5) > 0 ? 1 : .2);
+  [...$("prog").children].forEach((el, i) => el.classList.toggle("on", step && i < step.n));
+
+  // step wipe: a skewed panel sweeps across with the step name, covering the cut underneath
+  const wp = TL.wipes.find((x) => t >= x.t && t <= x.t + 1.15);
+  if (wp) {
+    const p = (t - wp.t) / 1.15;
+    const x = p < .28 ? lerp(3000, 0, ease(p / .28)) : p < .72 ? 0 : lerp(0, -3200, ease((p - .72) / .28));
+    $("wipe").style.transform = `translateX(${x}px) skewX(-14deg)`;
+    $("wipe-n").textContent = `STEP ${String(wp.n).padStart(2, "0")}`; $("wipe-t").textContent = wp.title;
+    const ti = clamp((p - .2) / .12) * clamp((.8 - p) / .1);
+    $("wipe-in").style.opacity = ti;
+    $("wipe-in").style.transform = `translateX(${(p < .5 ? (1 - easeOut((p - .2) / .2)) * 120 : -easeIn((p - .62) / .18) * 160)}px)`;
+  } else { $("wipe").style.transform = "translateX(3000px) skewX(-14deg)"; $("wipe-in").style.opacity = 0; }
+
+  // ---------------- phone ----------------
+  const PH = sceneT("phone"), P = TL.phone;
+  $("L-phone").style.opacity = t >= PH.a + .3 && t <= PH.b + .3 ? 1 : 0;
+  if (t >= PH.a && t <= PH.b + .5) {
+    const pin = (t - PH.a - .35) / .6;
+    $("phone").style.transform = `translateY(${(1 - back(pin)) * 500}px) rotate(${(1 - easeOut(pin)) * 8}deg)`;
+    const show = (id, at, dur = .32) => { const k = (t - at) / dur; const el = $(id);
+      el.style.display = t >= at ? "" : "none"; el.style.opacity = clamp(k * 2); el.style.transform = `scale(${lerp(.6, 1, back(k))})`; };
+    const typing = (id, a, b) => { const el = $(id); const on = t >= a && t < b; el.style.display = on ? "flex" : "none";
+      [...el.children].forEach((d, i) => { d.style.transform = `translateY(${-5 * Math.max(0, Math.sin((t - a) * 10 - i * .9))}px)`; }); };
+    show("tgd0", PH.a + .5); typing("tgt0", P.msg0 - .9, P.msg0); show("tgm0", P.msg0); show("tgb0", P.msg0 + .2);
+    show("tgd1", P.msg1 - 1.2); typing("tgt1", P.msg1 - .9, P.msg1); show("tgm1", P.msg1); show("tgb1", P.msg1 + .2);
+    const a0 = (t - P.msg0 - .15) / .4, a1 = (t - P.msg1 - .15) / .4;
+    $("ann0").style.opacity = clamp(a0 * 2); $("ann0").style.transform = `translateX(${(1 - back(a0)) * -80}px)`;
+    $("ann1").style.opacity = clamp(a1 * 2); $("ann1").style.transform = `translateX(${(1 - back(a1)) * -80}px)`;
+    $("days").style.opacity = clamp((t - P.days) / .3);
+    P.dayT.forEach((at, i) => { const el = $("d" + (i + 1)); el.classList.toggle("on", t >= at);
+      el.style.transform = `scale(${t >= at ? lerp(1.25, 1, easeOut((t - at) / .25)) : 1})`; });
+    $("tgm1").style.boxShadow = t >= P.msg1 ? `0 0 0 ${4 * fade(t, P.msg1 + .3, PH.b, .3)}px rgba(46,230,184,.95), 0 2px 4px rgba(0,0,0,.12)` : "";
+    $("tgm0").style.boxShadow = t >= P.msg0 ? `0 0 0 ${4 * fade(t, P.msg0 + .3, P.days, .3)}px rgba(46,230,184,.95), 0 2px 4px rgba(0,0,0,.12)` : "";
+  }
+
+  // ---------------- proof ----------------
+  const PR = sceneT("proof"), PF = TL.proof;
+  $("L-proof").style.opacity = t >= PR.a && t <= PR.b + .2 ? clamp((t - PR.a) / .2) * clamp((PR.b + .2 - t) / .3) : 0;
+  if (t >= PR.a - .1 && t <= PR.b + .3) {
+    PF.src.forEach((at, i) => { const k = (t - at) / .35;
+      $("src" + i).style.opacity = clamp(k * 2); $("src" + i).style.transform = `translateY(${(1 - back(k)) * 60}px) scale(${lerp(.85, 1, easeOut(k))})`; });
+    const vals = [2571, 6801, 7635];
+    vals.forEach((v, i) => {
+      const k = easeOut((t - PF.bars - i * .25) / 1.1), wpx = v / 7635 * 1000 * k, el = $("hb" + i);
+      el.style.opacity = t >= PF.bars - .1 ? 1 : 0;
+      el.querySelector(".tr").style.width = `${wpx}px`;
+      const vl = el.querySelector(".vl"); vl.style.left = `${wpx + 22}px`; vl.textContent = `+₹${Math.round(v * k).toLocaleString("en-IN")}`;
+    });
+    const x = (t - PF.x3) / .3;
+    $("x3").style.opacity = clamp(x * 3); $("x3").style.transform = `scale(${lerp(2.2, 1, easeOut(x))}) rotate(${(1 - easeOut(x)) * -10}deg)`;
+    $("x3s").style.opacity = clamp((t - PF.x3 - .3) / .3);
+    const p = (t - PF.p88) / .9;
+    $("p88").style.opacity = clamp(p * 4); $("p88").style.transform = `translateY(${(1 - easeOut(p * 2)) * 30}px)`;
+    $("p88v").textContent = `${Math.round(88 * easeOut(p))}%`;
+  }
+
+  // ---------------- why we win ----------------
+  const MV = sceneT("mvp");
+  $("L-mvp").style.opacity = t >= MV.a && t <= MV.b + .2 ? clamp((t - MV.a) / .2) * clamp((MV.b + .2 - t) / .3) : 0;
+  if (t >= MV.a - .1 && t <= MV.b + .3) {
+    const tk = (t - MV.a - .1) / .4;
+    $("mvp-t").style.opacity = clamp(tk * 2); $("mvp-t").style.transform = `scale(${lerp(1.3, 1, easeOut(tk))})`;
+    TL.mvp.forEach((c, i) => {
+      const k = (t - c.at) / .25, el = $("mv" + i);
+      el.style.opacity = clamp(k * 2.5);
+      el.style.transform = `scale(${lerp(1.5, 1, easeOut(k))})`;
+      el.style.filter = `blur(${(1 - clamp(k)) * 10}px)`;
+      const g = clamp(1 - (t - c.at) / 1.0);
+      el.style.borderColor = `rgba(46,230,184,${.25 + .7 * g})`;
+      el.style.boxShadow = `0 0 ${60 * g}px rgba(46,230,184,${.45 * g})`;
+    });
+  }
+
+  // ---------------- end ----------------
+  const E = sceneT("end");
+  $("L-end").style.opacity = clamp((t - E.a) / .25);
+  ["endlogo", "e0", "e1", "e2", "e3"].forEach((id, i) => {
+    const k = (t - E.a - .05 - i * .22) / .45;
+    $(id).style.opacity = clamp(k * 2);
+    $(id).style.transform = id === "endlogo" ? `scale(${lerp(2, 1, back(k))}) rotate(${(1 - easeOut(k)) * -20}deg)` : `translateY(${(1 - back(k)) * 40}px)`;
+  });
+
+  // ---------------- captions (karaoke) ----------------
+  const cap = TL.captions.find((c) => t >= c.a && t <= c.b);
+  if (cap) {
+    $("caption").innerHTML = cap.words.map((x, i) => {
+      const nx = cap.words[i + 1];
+      const cls = t >= x.t ? (!nx || t < nx.t ? "now" : "on") : "";
+      return `<span class="${cls}">${x.w}</span>`;
+    }).join(" ");
+    $("caption").style.opacity = Math.min(clamp((t - cap.a) / .12), clamp((cap.b - t) / .12));
+  } else $("caption").style.opacity = 0;
+}
+</script>
+</body>
+</html>

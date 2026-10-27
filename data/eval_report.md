@@ -1,0 +1,62 @@
+# Offer policy evaluation
+
+200 customers (customers.json), 1000 simulated weeks, decisions at 2026-10-16 14:00. All policies face the same simulated customers and random draws.
+
+AI policy: 180 decided by the agent, 0 fell back to rules, 2 flagged.
+
+## Results per week (average)
+
+| Policy | Messaged | Purchases | Extra purchases | Discount cost | Wasted on buy-anyway | Net margin | Extra net margin | Cost / extra purchase | Opt-outs |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| No offers | 0 | 39.8 | +0.0 ± 0.0 | ₹0 | ₹0 | ₹18,345 | +0 ± 0 | - | 0.0 |
+| 10% to everyone | 182 | 60.3 | +20.6 ± 4.2 | ₹7,371 | ₹4,834 | ₹20,916 | +2,571 ± 2,080 | ₹358 | 1.6 |
+| Rules | 180 | 54.7 | +17.3 ± 3.9 | ₹1,787 | ₹932 | ₹25,146 | +6,801 ± 2,380 | ₹103 | 1.6 |
+| Rules + AI | 179 | 53.8 | +17.3 ± 4.0 | ₹877 | ₹202 | ₹25,980 | +7,635 ± 2,412 | ₹51 | 1.5 |
+
+- **Extra purchases / extra net margin**: compared with sending nothing (± = spread across simulated weeks).
+- **Wasted on buy-anyway**: discount paid to customers who would have bought without the offer.
+
+## Extra net margin per customer, by segment (₹ per week)
+
+| Segment | Customers | 10% to everyone | Rules | Rules + AI |
+|---|---:|---:|---:|---:|
+| DEAL_SEEKER | 37 | +58 | +42 | +41 |
+| LOYAL | 31 | -38 | -4 | +17 |
+| AT_RISK | 28 | +34 | +43 | +36 |
+| CART_ABANDONER | 22 | +46 | +84 | +83 |
+| DORMANT | 20 | +25 | +24 | +22 |
+| NEW | 19 | +42 | +39 | +41 |
+| VIP | 16 | -112 | +29 | +46 |
+| BROWSER | 14 | +12 | +16 | +25 |
+| REGULAR | 8 | +32 | +27 | +32 |
+| NEVER_BOUGHT | 3 | +12 | +22 | +22 |
+| POINTS_EXPIRING | 2 | -158 | +83 | +83 |
+
+- **Rules** earns less than the blanket discount for: DEAL_SEEKER, NEW, REGULAR. Those segments' caps or offer ladders may be too cautious.
+- **Rules + AI** earns less than the blanket discount for: DEAL_SEEKER, DORMANT, NEW. Those segments' caps or offer ladders may be too cautious.
+
+## Control group per segment
+
+| Segment | Control | Treated |
+|---|---:|---:|
+| DEAL_SEEKER | 5 | 32 |
+| LOYAL | 3 | 28 |
+| AT_RISK | 3 | 25 |
+| CART_ABANDONER | 1 | 21 |
+| DORMANT | 3 | 17 |
+| NEW | 6 | 13 |
+| VIP | 2 | 14 |
+| BROWSER | 2 | 12 |
+| REGULAR | 1 | 7 |
+| NEVER_BOUGHT | 0 | 3 |
+| POINTS_EXPIRING | 0 | 2 |
+
+- Segments with fewer than 10 controls can't be measured on their own: AT_RISK (3), BROWSER (2), CART_ABANDONER (1), DEAL_SEEKER (5), DORMANT (3), LOYAL (3), NEVER_BOUGHT (0), NEW (6), POINTS_EXPIRING (0), REGULAR (1), VIP (2).
+
+## How you would measure it for real (holdout test)
+
+In one real week you can't see what customers would have done without an offer, so you compare the 174 customers who got the rules policy with the 26 in the control group (holdout).
+
+- Measured uplift in purchase rate: **+17.8% ± 14.0%** (95% interval)
+- True uplift (known only in simulation): **+7.6%**
+- The interval excludes zero, so the effect is detectable, and it contains the true value.

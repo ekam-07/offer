@@ -1,0 +1,229 @@
+{
+  "flipkart": {
+    "source": "D:\\hackathon\\data\\raw\\flipkart_com-ecommerce_sample.csv",
+    "products_used": 17273,
+    "overall_median_price_inr": 549.0,
+    "categories": {
+      "Beauty": {
+        "products": 752,
+        "share": 0.044,
+        "median_price_inr": 360.0,
+        "p25_price_inr": 299.0,
+        "p75_price_inr": 519.0,
+        "median_list_discount_pct": 15.0,
+        "sample_products": [
+          "Envy 1000 Kiss,Blush Combo Set",
+          "Nature'S Aloe Vera Sunscreen Lotion -",
+          "Playboy Berlin Combo Set",
+          "Layer'r Shock Combo Set",
+          "Denver RO Combo Set",
+          "Spinz Combo Set",
+          "Fogg Ocean Combo Set",
+          "Addiction Rio,Vegas Gift Set Combo Set"
+        ]
+      },
+      "Books": {
+        "products": 15,
+        "share": 0.001,
+        "median_price_inr": 2054.0,
+        "p25_price_inr": 1092.5,
+        "p75_price_inr": 8065.0,
+        "median_list_discount_pct": 5.0,
+        "sample_products": [
+          "Basic Italian",
+          "The Discarded Image: An Introduction",
+          "Lecture Notes: Medical Microbiology",
+          "Particles and Fundamental",
+          "Elementary Particle Physics: Quantum",
+          "Advances in Immunology",
+          "Freedom of Establishment and Private",
+          "Fast Italian with Elisabeth Smith"
+        ]
+      },
+      "Electronics": {
+        "products": 701,
+        "share": 0.041,
+        "median_price_inr": 1090.0,
+        "p25_price_inr": 348.0,
+        "p75_price_inr": 1910.0,
+        "median_list_discount_pct": 43.5,
+        "sample_products": [
+          "Hako 60W Magsafe Laptop Charger For",
+          "JJC LH-57 Lens Hood",
+          "Smartpro 19.5v,3.9a Replacement",
+          "Rega IT Hp Pavilion DV2047TX DV2048TU",
+          "Lapguard Lenovo IdeaPad V470 6 Cell",
+          "Tenda TE-D830R",
+          "RCE HP ProBook 4535s 6 Cell Laptop",
+          "Iball WRA300N3GT"
+        ]
+      },
+      "Fashion": {
+        "products": 11760,
+        "share": 0.681,
+        "median_price_inr": 499.0,
+        "p25_price_inr": 369.0,
+        "p75_price_inr": 910.0,
+        "median_list_discount_pct": 50.0,
+        "sample_products": [
+          "Harissons Inferno Small 27 L Backpack",
+          "Sharon Swede Leather Casual Shoes",
+          "Jewels5 Olivoa Gold Diamond 18 K Ring",
+          "Ortho + Rest Women Flats",
+          "Jocular Wood Necklace",
+          "Fashiondeal Printed Daily Wear Cotton",
+          "Beebay Baby Boy's Solid Casual Shirt",
+          "A Bit of Me Au Fait? Alloy Necklace"
+        ]
+      },
+      "Grocery": {
+        "products": 6,
+        "share": 0.0,
+        "median_price_inr": 599.0,
+        "p25_price_inr": 599.0,
+        "p75_price_inr": 861.5,
+        "median_list_discount_pct": 0.0,
+        "sample_products": [
+          "Proence Weight Gainers, Mass Gainers",
+          "Stamin Mass Gainers",
+          "Whirlpool Stainless steel Kitchen",
+          "Oswal Combo pack Kitchen Cleaner",
+          "Whirlpool Affresh Cooktop Cleaner",
+          "Whirlpool Affresh Stainless Steel"
+        ]
+      },
+      "Home": {
+        "products": 2942,
+        "share": 0.17,
+        "median_price_inr": 649.0,
+        "p25_price_inr": 349.0,
+        "p75_price_inr": 1249.0,
+        "median_list_discount_pct": 38.7,
+        "sample_products": [
+          "Home Delight 130 inch Pink Rice Lights",
+          "Printland PMR1051 Ceramic Mug",
+          "Alda Wok Glass Lid Kadhai",
+          "Surface 180 Wooden Elephant Shape",
+          "Zikrak Exim Floral Cushions Cover",
+          "VGreen Plant Container Set",
+          "Valtellina Abstract Double Blanket Red",
+          "Homec Geometric Cushions Cover"
+        ]
+      },
+      "Mobiles": {
+        "products": 1097,
+        "share": 0.064,
+        "median_price_inr": 599.0,
+        "p25_price_inr": 449.0,
+        "p75_price_inr": 1499.0,
+        "median_list_discount_pct": 53.9,
+        "sample_products": [
+          "Gioiabazar Book Cover for Samsung",
+          "Icon Book Cover for iPad Mini",
+          "Shortkut enterprises Model no 476",
+          "SNE Book Cover for Lenovo Tab 2 A7-10",
+          "Generix Book Cover for ASUS Fonepad 7",
+          "DailyObjects Back Cover for Apple iPad",
+          "LAIBA Battery - Laiba Battery - LT30P",
+          "Furst USB Adapter with Cable For Mt X"
+        ]
+      }
+    }
+  },
+  "behaviour": {
+    "source": "D:\\hackathon\\data\\raw\\events.csv",
+    "format": "retailrocket",
+    "sampled_users_share": 1.0,
+    "days_covered": 138.0,
+    "users": 1407580,
+    "sessions": 1761675,
+    "events": 2756101,
+    "session_purchase_rate": 0.0081,
+    "cart_abandonment_rate": 0.7283,
+    "abandon_rate_per_non_buying_session": 0.0183,
+    "buyer_share": 0.0083,
+    "repeat_buyer_share": 0.0585,
+    "window_shopper_share_of_heavy_browsers": 0.8901,
+    "sessions_per_week_returning_users": {
+      "p10": 0.32,
+      "p25": 0.78,
+      "p50": 2.0,
+      "p75": 2.0,
+      "p90": 3.0
+    },
+    "order_gap_days_repeat_buyers": {
+      "p10": 1.0,
+      "p25": 2.0,
+      "p50": 6.0,
+      "p75": 18.0,
+      "p90": 38.7
+    },
+    "repeat_buyers_with_gap": 544
+  },
+  "hillstrom": {
+    "source": "D:\\hackathon\\data\\raw\\Kevin_Hillstrom_MineThatData_E-MailAnalytics_DataMiningChallenge_2008.03.20.csv",
+    "customers": 64000,
+    "window_days": 14,
+    "buy_rate_no_email": 0.0057,
+    "buy_rate_email": 0.0107,
+    "relative_lift": 0.87,
+    "confidence": 0.9,
+    "cells": {
+      "loyal": {
+        "customers": 10357,
+        "buy_rate_no_email": 0.0128,
+        "buy_rate_email": 0.0144,
+        "uplift": 0.0016,
+        "ratio_to_all": 0.33,
+        "ratio_range": [
+          -0.52,
+          1.03
+        ]
+      },
+      "vip": {
+        "customers": 2514,
+        "buy_rate_no_email": 0.0171,
+        "buy_rate_email": 0.0171,
+        "uplift": 0.0,
+        "ratio_to_all": 0.0,
+        "ratio_range": [
+          -2.15,
+          1.7
+        ]
+      },
+      "at_risk": {
+        "customers": 11116,
+        "buy_rate_no_email": 0.0059,
+        "buy_rate_email": 0.0091,
+        "uplift": 0.0032,
+        "ratio_to_all": 0.63,
+        "ratio_range": [
+          0.06,
+          1.11
+        ]
+      },
+      "dormant": {
+        "customers": 10383,
+        "buy_rate_no_email": 0.0046,
+        "buy_rate_email": 0.0105,
+        "uplift": 0.006,
+        "ratio_to_all": 1.19,
+        "ratio_range": [
+          0.69,
+          1.75
+        ]
+      },
+      "new": {
+        "customers": 12036,
+        "buy_rate_no_email": 0.0057,
+        "buy_rate_email": 0.0137,
+        "uplift": 0.008,
+        "ratio_to_all": 1.61,
+        "ratio_range": [
+          1.06,
+          2.15
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+# Secrets
+.env
+.claude/settings.local.json
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Databases (rebuilt by generate_data.py, run_decisions.py and the simulations)
+data/*.db
+data/*.db-journal
+
+# Third-party datasets: download them yourself (see README), too big and not ours to redistribute
+data/raw/
+data/dataset/events.csv
+
+# Video renders: frames, voice, music and old cuts are rebuilt by each make.py
+**/build/
+video/ref/
+video/**/*.mp3
+video/**/*.wav
+video/**/*.mp4
+!video/story2/AI_Offer_Engine_Demo_v2.mp4
+
+# Separate project, kept out of this repo
+internship-email-agent/
+
+# Personal notes
+PLAN.md
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offer Preview</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --text: #1d2330; --muted: #667085; --line: #e4e7ec;
+    --ai: #0f8a5f; --ai-bg: #e3f6ee; --rules: #2a5bd7; --rules-bg: #e6edfd;
+    --sys: #667085; --sys-bg: #eef0f3; --bad: #c4320a; --bad-bg: #fdece6; --warn: #b54708; --warn-bg: #fef3e2;
+    --bubble: #e7f8dd; --accent: #1d2330;
+  }
+  @media (prefers-color-scheme: dark) {
+    html #tip { background: #f2f4f7; color: #12151b; }
+    :root {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e9ef; --muted: #98a2b3; --line: #2b323e;
+      --ai: #4fd1a1; --ai-bg: #12352a; --rules: #8fb0ff; --rules-bg: #1b2a4d;
+      --sys: #98a2b3; --sys-bg: #262c36; --bad: #ff8a65; --bad-bg: #3d1f17; --warn: #fdb022; --warn-bg: #3a2a10;
+      --bubble: #1f3a2a; --accent: #e6e9ef;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); padding: 16px 20px 14px; }
+  h1 { font-size: 20px; margin: 0; }
+  .subtitle { color: var(--muted); margin: 2px 0 0; font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 12px; margin-top: 14px; }
+  .group { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 12px; background: var(--bg); display: flex; flex-direction: column; gap: 8px; }
+  .group-title { font-weight: 700; font-size: 13px; display: flex; gap: 6px; align-items: center; }
+  .group-help { color: var(--muted); font-size: 12px; margin-top: -4px; }
+  .group input[type=datetime-local], .group select { width: 100%; }
+  .seg-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .switch { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  .switch input { width: 16px; height: 16px; accent-color: var(--ai); }
+  button.big { width: 100%; padding: 9px 12px; font-weight: 600; }
+  button.danger { color: var(--bad); }
+  button.danger:hover { border-color: var(--bad); }
+  .offer-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .offer-btns button { font-size: 12.5px; padding: 4px 9px; border-radius: 999px; display: inline-flex; gap: 5px; align-items: center; }
+  .offer-btns button .n { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .offer-btns button[aria-pressed=true] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .offer-btns button[aria-pressed=true] .n { color: var(--bg); opacity: .8; }
+  #offerSummary { margin: 16px 20px 0; }
+  #offerSummary:empty { display: none; }
+  .osum { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .osum-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; justify-content: space-between; }
+  .osum-title { font-weight: 700; font-size: 16px; }
+  .osum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+  .osum-segs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .goal { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 5px; }
+  .goal .bar { height: 10px; }
+  .perk-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .perk-opts div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; }
+  .perk-opts div.picked { border-color: var(--ai); background: var(--ai-bg); }
+  .auto { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 12.5px;
+          border: 1px dashed var(--line); border-radius: 10px; padding: 8px 12px; color: var(--muted); }
+  .auto b { color: var(--text); }
+  .auto .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ai); display: inline-block; margin-right: 4px; }
+  .auto .dot.off { background: var(--muted); }
+  .triggers { border: 1px dashed var(--line); border-radius: 10px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+  .triggers .row button { font-size: 12px; padding: 4px 8px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-top: 12px; }
+  .tile { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--panel); }
+  .tile .v { font-size: 20px; font-weight: 700; line-height: 1.2; }
+  .tile .k { font-size: 11.5px; color: var(--muted); }
+  .tile.ai .v { color: var(--ai); } .tile.rules .v { color: var(--rules); } .tile.bad .v { color: var(--bad); }
+  .bar { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 5px; }
+  .bar span { display: block; height: 100%; background: var(--ai); }
+  #tip { position: fixed; z-index: 50; max-width: 280px; background: #1d2330; color: #fff; font-size: 12.5px; line-height: 1.4;
+         padding: 7px 10px; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.25); pointer-events: none; opacity: 0; transition: opacity .12s; }
+  #tip.show { opacity: 1; }
+  [data-tip] { cursor: help; }
+  button[data-tip], select[data-tip], input[data-tip], label[data-tip], summary[data-tip] { cursor: pointer; }
+  button, input, select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: wait; }
+  label.toggle { display: inline-flex; gap: 6px; align-items: center; }
+  .note { color: var(--muted); font-size: 12px; }
+  main { padding: 16px 20px 40px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .toolbar input[type=search] { flex: 1 1 260px; min-width: 0; padding: 8px 12px; }
+  .toolbar .count { color: var(--muted); font-size: 13px; margin-left: auto; }
+  .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  table.list { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.list th { text-align: left; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+                  color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--bg); white-space: nowrap; }
+  table.list td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  table.list tbody tr { cursor: pointer; }
+  table.list tbody tr:hover, table.list tbody tr:focus-visible { background: var(--bg); outline: none; }
+  table.list tbody tr.open { background: var(--rules-bg); }
+  table.list tbody tr:last-child td { border-bottom: 0; }
+  .cust b { display: block; font-weight: 600; } .cust span { color: var(--muted); font-size: 12px; }
+  .mini { display: flex; align-items: center; gap: 6px; } .mini .bar { width: 60px; margin: 0; }
+  .num { text-align: right; white-space: nowrap; }
+  .flagdot { color: var(--bad); font-weight: 700; }
+  .pager { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; margin-top: 12px; }
+  .pager button { min-width: 36px; }
+  .pager button[aria-current=page] { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .pager .gap { color: var(--muted); padding: 0 4px; }
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 20; display: none; }
+  #scrim.show { display: block; }
+  #drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); z-index: 21; background: var(--panel);
+            border-left: 1px solid var(--line); box-shadow: -12px 0 30px rgba(0,0,0,.18); transform: translateX(105%);
+            transition: transform .2s ease; display: flex; flex-direction: column; }
+  #drawer.open { transform: none; }
+  .drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .drawer-body { overflow-y: auto; padding: 14px 16px 24px; }
+  .drawer-body .card { border: 0; padding: 0; }
+  @media (max-width: 760px) {
+    table.list .hide-sm { display: none; }
+    table.list td, table.list th { padding: 9px 8px; }
+  }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .card.flagged { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad) inset; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .name { font-weight: 600; font-size: 15px; }
+  .persona { color: var(--muted); font-size: 12px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; }
+  .seg { background: var(--sys-bg); color: var(--text); }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font-size: 11px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; color: var(--muted); }
+  .chip b { color: var(--text); font-weight: 600; }
+  .offer { border-top: 1px dashed var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .offer-title { font-weight: 600; }
+  .bubble { background: var(--bubble); border-radius: 10px 10px 10px 2px; padding: 8px 10px; max-width: 95%; white-space: pre-wrap; }
+  .by-AGENT { background: var(--ai-bg); color: var(--ai); }
+  .by-RULES { background: var(--rules-bg); color: var(--rules); }
+  .by-SYSTEM { background: var(--sys-bg); color: var(--sys); }
+  .st-READY { background: var(--ai-bg); color: var(--ai); }
+  .st-NO_OFFER, .st-HOLDOUT, .st-NOT_ELIGIBLE, .st-DEFERRED { background: var(--sys-bg); color: var(--sys); }
+  .flag { background: var(--bad-bg); color: var(--bad); }
+  .reason { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .why { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 9px; }
+  .why-head { font-weight: 700; font-size: 13px; }
+  .why-row { display: grid; grid-template-columns: 26px 1fr; gap: 6px; align-items: start; }
+  .why-ico { font-size: 17px; line-height: 1.25; text-align: center; }
+  .why-label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .why-text { font-size: 13px; line-height: 1.4; }
+  .why-row.good .why-text { color: var(--ai); font-weight: 600; }
+  .meter { display: flex; gap: 3px; margin: 4px 0 3px; }
+  .meter i { flex: 1; height: 7px; border-radius: 3px; background: var(--line); }
+  .meter i.on { background: var(--rules); }
+  .decider { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+  details.tech summary { font-size: 12px; color: var(--muted); cursor: pointer; }
+  details.tech summary:hover { color: var(--text); }
+  .err { background: var(--bad-bg); color: var(--bad); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+  .err ul { margin: 4px 0 0; padding-left: 18px; }
+  .empty { color: var(--muted); font-style: italic; }
+  .actions { display: flex; gap: 6px; margin-top: auto; }
+  .actions button { font-size: 12px; padding: 4px 8px; }
+  .hist { font-size: 12px; border-top: 1px solid var(--line); padding-top: 6px; display: none; }
+  .hist.open { display: block; }
+  .hist div { padding: 3px 0; border-bottom: 1px solid var(--line); }
+  #banner { margin-top: 8px; }
+  @media (max-width: 600px) { header, main { padding-left: 16px; padding-right: 16px; } main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Offer Preview</h1>
+  <p class="subtitle">See which offer each customer would get, who chose it and why. Nothing is sent to real people from this page.</p>
+  <div class="note" id="meta" data-tip="Which customer file is loaded, how many customers are kept as a no-offer test group, and which AI model decides."></div>
+
+  <div class="groups">
+    <section class="group" aria-labelledby="g-time">
+      <div class="group-title" id="g-time">🕒 1. Pick the time</div>
+      <div class="group-help">Pretend it's a different moment, to test waiting rules.</div>
+      <input type="datetime-local" id="now" aria-label="Pretend date and time"
+             data-tip="The moment the engine decides at. Change it to test night-time messages, gaps between offers and expiry dates.">
+      <div class="seg-btns">
+        <button data-shift="1" data-tip="Move the clock forward 1 hour.">+1 hour</button>
+        <button data-shift="24" data-tip="Move the clock forward 1 day: e.g. to see a cart reminder turn into a discount.">+1 day</button>
+        <button data-shift="168" data-tip="Move the clock forward 1 week: offers expire and weekly limits reset.">+1 week</button>
+      </div>
+    </section>
+
+    <section class="group" aria-labelledby="g-decide">
+      <div class="group-title" id="g-decide">⚡ 2. Choose offers</div>
+      <label class="switch" data-tip="On: the AI (Claude) picks each offer and writes the message; the rules check it and take over if it breaks a rule. Off: the rules pick on their own (free and instant).">
+        <input type="checkbox" id="useAgent"> Let the AI choose <span class="note">(rules always check it)</span>
+      </label>
+      <button class="primary big" id="decideAll" data-tip="Make a fresh decision for every customer at the time above. With the AI on, this makes one AI call per customer.">Decide for everyone</button>
+      <button id="newCustomer" data-tip="Pretend a new person signs up in the store. The system decides for them automatically, without pressing Decide.">➕ A new customer signs up</button>
+      <button class="danger" id="reset" data-tip="Delete all test decisions on this page and start from a clean history. Customers are not affected.">Clear all decisions</button>
+    </section>
+
+    <section class="group" aria-labelledby="g-show">
+      <div class="group-title" id="g-show">🔍 3. Filter the list</div>
+      <select id="segFilter" aria-label="Customer group" data-tip="Show only one group of customers, e.g. only people at risk of leaving."><option value="">All customer groups</option></select>
+      <label class="switch" data-tip="Show only decisions that need a person to look at them: the AI failed, broke a rule, or the customer complained.">
+        <input type="checkbox" id="flaggedOnly"> Only ones that need a look ⚑
+      </label>
+    </section>
+
+    <section class="group" aria-labelledby="g-offer">
+      <div class="group-title" id="g-offer">🎁 4. Pick an offer type</div>
+      <div class="group-help">Click one to see only the customers who get it.</div>
+      <div class="offer-btns" id="offerFilter" role="group" aria-label="Offer type"></div>
+    </section>
+  </div>
+
+  <div id="banner"></div>
+  <div class="tiles" id="stats"></div>
+  <div class="auto" id="auto" data-tip="Decisions now happen by themselves: when something happens in the store (sign-up, cart left, order, price drop) and once a day for everyone. Every one still goes through the AI and the rules."></div>
+</header>
+<div id="tip" role="tooltip"></div>
+<div id="offerSummary" aria-live="polite"></div>
+<main>
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="🔎 Search by name or customer ID" aria-label="Search customers"
+           data-tip="Type part of a name or an ID like U0042. The list updates as you type.">
+    <select id="sort" aria-label="Sort by" data-tip="Choose the order of the list.">
+      <option value="name">Sort: name (A–Z)</option>
+      <option value="chance">Sort: most likely to buy</option>
+      <option value="risk">Sort: most likely to leave</option>
+      <option value="value">Sort: biggest spenders</option>
+      <option value="cost">Sort: most expensive offer</option>
+    </select>
+    <select id="size" aria-label="Rows per page" data-tip="How many customers to show on one page.">
+      <option value="25">25 per page</option><option value="50">50 per page</option><option value="100">100 per page</option>
+    </select>
+    <span class="count" id="count" aria-live="polite"></span>
+  </div>
+  <div class="table-wrap">
+    <table class="list">
+      <thead><tr>
+        <th data-tip="Customer name and ID. Click a row to see everything about them.">Customer</th>
+        <th data-tip="Which group the engine put them in.">Group</th>
+        <th data-tip="The offer they get (or no offer).">Offer</th>
+        <th class="hide-sm" data-tip="Who chose it: the AI (checked by the rules), the rules, or before any offer was considered.">Chosen by</th>
+        <th class="hide-sm num" data-tip="What the offer costs us if they use it.">Cost</th>
+        <th class="hide-sm" data-tip="Chance they buy this week with no offer.">Buy anyway</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <nav class="pager" id="pager" aria-label="Pages"></nav>
+</main>
+<div id="scrim"></div>
+<aside id="drawer" aria-label="Customer details" aria-hidden="true">
+  <div class="drawer-head">
+    <strong id="drawerTitle">Customer</strong>
+    <button id="drawerClose" aria-label="Close" data-tip="Close this panel (or press Esc).">✕ Close</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script>
+const state = { rows: [], total: 0, summary: null, focus: null, status: null, spent: 0,
+                page: 1, size: 25, q: "", sort: "name", open: null };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+const inr = (n) => "₹" + Math.round(n || 0).toLocaleString("en-IN");
+
+// Plain names for the engine's segment codes (the code stays visible on each card).
+const SEGMENTS = {
+  CART_ABANDONER: ["Left something in cart", "Has an item waiting in the cart."],
+  NEW: ["New shopper", "Joined recently and hasn't bought yet."],
+  NEVER_BOUGHT: ["Never bought", "Joined a while ago but never bought anything."],
+  DORMANT: ["Gone quiet", "Used to buy, but stopped a long time ago."],
+  AT_RISK: ["At risk of leaving", "Late compared with how often they usually buy."],
+  POINTS_EXPIRING: ["Points expiring", "Has reward points that will expire soon."],
+  DEAL_SEEKER: ["Loves deals", "Uses coupons on many orders."],
+  VIP: ["Top customer", "Spends the most per order."],
+  LOYAL: ["Regular fan", "Buys often, usually without coupons."],
+  BROWSER: ["Just looking", "Visits a lot but rarely buys."],
+  REGULAR: ["Everyday shopper", "Buys now and then."],
+};
+const segName = (s) => (SEGMENTS[s] || [s])[0];
+const segTip = (s) => `${segName(s)} (${s}): ${(SEGMENTS[s] || ["", ""])[1]}`;
+
+const CHIP_TIPS = {
+  "orders": "How many orders they have ever placed.",
+  "last order": "How long ago they last bought something.",
+  "usual gap": "How many days they usually wait between orders.",
+  "avg order": "How much they usually spend per order.",
+  "coupons": "Out of 100 orders, how many used a coupon. High = loves deals.",
+  "churn risk": "How likely they are to stop shopping here: 0 = not at all, 1 = very likely.",
+  "buy in 7d": "Chance they buy something in the next 7 days without any offer.",
+  "category": "What they shop for most.",
+  "points": "Reward points they have (and how many expire soon).",
+  "cart left": "Value of the items left in their cart, and how long ago.",
+  "used discount": "When they last used a discount. Rules wait 14 days before another one.",
+  "consent": "They have not agreed to get offers, so they never get one.",
+};
+const PILL_TIPS = {
+  READY: "An offer is ready to send.",
+  NO_OFFER: "No offer this time: none would earn more than it costs.",
+  HOLDOUT: "Part of the test group that never gets offers, so we can measure if offers really work.",
+  NOT_ELIGIBLE: "Hasn't agreed to receive offers (or asked us to stop).",
+  DEFERRED: "Decided, but waiting to be sent later.",
+  SENT: "Already sent to the customer.",
+  DRY_RUN: "Would have been sent (test mode: nothing really goes out).",
+  BLOCKED_AT_SEND: "Stopped at the last moment (consent changed or sending is switched off).",
+  SEND_FAILED: "Sending failed; kept and flagged so it isn't lost.",
+  AGENT: "The AI chose this offer and wrote the message; the rules then checked it.",
+  RULES: "The rules chose this offer (AI switched off, or the AI failed).",
+  EXPLORE: "Picked at random (5 times in 100) to learn which offers work best.",
+  SYSTEM: "Decided before any offer was considered (test group or no consent).",
+};
+const AGENT_TIPS = {
+  OK: "The AI's first answer passed every rule.",
+  OK_AFTER_RETRY: "The AI broke a rule, was told why, and fixed it on its second try.",
+  REJECTED: "The AI broke rules twice, so the rules decided instead.",
+  FAILED: "The AI couldn't be reached (no key, timeout, error), so the rules decided.",
+  NOT_NEEDED: "Only 'no offer' was allowed, so the AI wasn't asked.",
+  OUTDATED: "The AI's choice no longer fit (e.g. the budget ran out), so the rules re-decided.",
+};
+// Plain names for the offers, in the order they're listed in the 4th block.
+const OFFER_NAMES = {
+  CART_REMINDER: ["🛒", "Cart reminder"], CART_ALTERNATIVE: ["🔁", "Similar item"],
+  POINTS_REMINDER: ["⏳", "Points expiring"], POINTS_UPDATE: ["⭐", "Points update"],
+  BUNDLE_SUGGEST: ["🧺", "Bought together"], BUNDLE_DEAL: ["🧺", "Bought-together deal"],
+  WISHLIST_ALERT: ["👀", "Wishlist alert"], SPEND_GOAL: ["🎯", "Spend goal"], PERK_CHOICE: ["🎁", "Pick your perk"],
+  REPLENISH_REMINDER: ["🔄", "Restock reminder"], REVIEW_REQUEST: ["📝", "Review request"],
+  EARLY_ACCESS: ["🎟️", "Early sale access"], BONUS_POINTS: ["➕", "Bonus points"],
+  FREE_SHIPPING: ["🚚", "Free delivery"], FLAT_OFF: ["₹", "Rupees off"], PERCENT_OFF: ["%", "Percent off"],
+  CATEGORY_DEAL: ["🏷️", "Category deal"], PRODUCT_COUPON: ["🎫", "Product coupon"], WELCOME: ["👋", "Welcome offer"],
+  NONE: ["🚫", "No offer"],
+};
+const offerKey = (c) => (c.latest ? c.latest.offer_id || "NONE" : null);
+const offerName = (k) => (OFFER_NAMES[k] || ["", k])[1];
+const offerIcon = (k) => (OFFER_NAMES[k] || [""])[0];
+const isFree = (k) => k !== "NONE" && ["reminder", "access", "none"].includes(state.status.offers[k]?.type);
+state.offer = "";
+
+function renderOfferFilter() {
+  const counts = state.summary.offers;
+  if (state.offer && !counts[state.offer]) state.offer = "";
+  const order = Object.keys(OFFER_NAMES).filter((k) => counts[k]);
+  const btn = (k, label, n, tip) =>
+    `<button type="button" data-offer="${esc(k)}" aria-pressed="${state.offer === k}" data-tip="${esc(tip)}">${label} <span class="n">${n}</span></button>`;
+  $("offerFilter").innerHTML = (order.length ? btn("", "All", state.summary.customers, "Show every customer again.") : "") +
+    order.map((k) => btn(k, `${offerIcon(k)} ${esc(offerName(k))}`, counts[k],
+      k === "NONE" ? "Customers who get nothing this time (no offer pays off, test group, or no consent)."
+                   : `${state.status.offers[k]?.description || ""} ${isFree(k) ? "Costs us nothing." : "Costs money only if they use it."}`)).join("") ||
+    `<span class="note">Click "Decide for everyone" first.</span>`;
+}
+
+function renderOfferSummary() {
+  const k = state.offer, f = state.focus;
+  if (!k || !f) { $("offerSummary").innerHTML = ""; return; }
+  const segPills = Object.entries(f.segments).sort((a, b) => b[1] - a[1])
+    .map(([sg, m]) => `<span class="pill seg"${tipAttr(segTip(sg))}>${esc(segName(sg))} · ${m}</span>`).join("");
+  const tile = (v, label, tip) => `<div class="tile" data-tip="${esc(tip)}"><div class="v">${esc(v)}</div><div class="k">${esc(label)}</div></div>`;
+  $("offerSummary").innerHTML = `
+    <div class="osum">
+      <div class="osum-head">
+        <span class="osum-title">${offerIcon(k)} ${esc(offerName(k))}: ${f.n} customer${f.n === 1 ? "" : "s"}</span>
+        <span class="note">${esc(k === "NONE" ? "Nothing is sent to these customers." : state.status.offers[k]?.description || "")}</span>
+      </div>
+      <div class="osum-grid">
+        ${tile(k === "NONE" ? "₹0" : isFree(k) ? "Free" : inr(f.cost), k === "NONE" || isFree(k) ? "cost to us" : "cost if everyone uses it",
+               "What these offers would cost the shop if every customer here used them.")}
+        ${tile(`${Math.round(f.avg_chance * 100)} in 100`, "average chance they buy anyway", "On average, how likely these customers are to buy this week with no offer.")}
+        ${tile(inr(f.avg_order), "average order", "How much these customers usually spend per order.")}
+        ${tile(`${Math.round(f.avg_risk * 100)} in 100`, "average risk of leaving", "On average, how likely these customers are to stop shopping here.")}
+        ${tile(`${f.by_ai} of ${f.n}`, "chosen by the AI", "How many of these decisions the AI made (the rest by the rules or before any offer).")}
+      </div>
+      <div><div class="why-label" style="margin-bottom:6px">Who gets it</div><div class="osum-segs">${segPills}</div></div>
+    </div>`;
+}
+
+const tipAttr = (t) => (t ? ` data-tip="${esc(t)}"` : "");
+
+function pad(n) { return String(n).padStart(2, "0"); }
+function toLocalInput(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function nowValue() { return $("now").value; }
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+function offerLabel(r) {
+  if (!r.offer_id || r.offer_id === "NONE") return "No offer";
+  const unit = state.status.offers[r.offer_id]?.unit;
+  const v = r.value || 0;
+  const val = unit === "percent" ? `${v}% off` : unit === "inr" ? `${inr(v)} off` : unit === "points" ? `${v} points` : "";
+  return `${r.offer_id.replace(/_/g, " ")}${val ? " · " + val : ""}`;
+}
+
+function chips(c) {
+  const items = [
+    c.orders_total ? ["last order", `${c.recency_days}d ago`] : ["orders", "0"],
+    c.orders_total ? ["usual gap", `${c.avg_gap_days}d`] : null,
+    ["avg order", inr(c.aov)],
+    ["coupons", `${Math.round(c.coupon_rate * 100)}%`],
+    ["churn risk", c.churn_risk],
+    ["buy in 7d", `${Math.round((c.p_buy_7d || 0) * 100)}%`],
+    ["category", c.top_category],
+    ["points", `${c.points_balance}${c.points_expiring_30d ? ` (${c.points_expiring_30d} expiring)` : ""}`],
+    c.cart_abandoned_hours_ago != null ? ["cart left", `${inr(c.abandoned_cart_value)} · ${c.cart_abandoned_hours_ago}h ago`] : null,
+    c.days_since_discount_redeemed != null ? ["used discount", `${c.days_since_discount_redeemed}d ago`] : null,
+    c.opted_in ? null : ["consent", "opted out"],
+  ].filter(Boolean);
+  return items.map(([k, v]) => `<span class="chip"${tipAttr(CHIP_TIPS[k])}>${esc(k)} <b>${esc(v)}</b></span>`).join("");
+}
+
+function decisionHtml(r, simple) {
+  if (!r) return `<div class="offer"><span class="empty">Not decided yet.</span></div>`;
+  const problems = [];
+  if (r.agent_failure) problems.push(`<div><b>Agent failure:</b> ${esc(r.agent_failure)}</div>`);
+  if (r.violations?.length) problems.push(`<div><b>Rule violations:</b><ul>${r.violations.map((v) => `<li>${esc(v)}</li>`).join("")}</ul></div>`);
+  return `
+    <div class="offer">
+      <div class="row">
+        <span class="pill st-${esc(r.status)}"${tipAttr(PILL_TIPS[r.status])}>${esc(r.status.replace("_", " "))}</span>
+        <span class="pill by-${esc(r.decided_by)}"${tipAttr(PILL_TIPS[r.decided_by])}>${r.decided_by === "AGENT" ? "AI AGENT" : esc(r.decided_by)}</span>
+        ${r.agent_status && r.agent_status !== "SKIPPED" ? `<span class="pill seg"${tipAttr(AGENT_TIPS[r.agent_status])}>agent: ${esc(r.agent_status)}</span>` : ""}
+        ${r.flagged ? `<span class="pill flag" data-tip="A person should look at this one: see the red box or the full reason.">⚑ FLAGGED</span>` : ""}
+      </div>
+      <div class="offer-title" data-tip="The offer chosen for this customer, and what it costs us if they use it.">${esc(offerLabel(r))}${r.est_cost_inr ? ` <span class="note">· cost ${inr(r.est_cost_inr)}</span>` : ""}</div>
+      ${r.message ? `<div class="bubble" data-tip="The exact message the customer would receive.">${esc(r.message)}</div>` : ""}
+      ${extraHtml(r, simple)}
+      ${simple ? whyHtml(simple) : ""}
+      ${problems.length ? `<div class="err">${problems.join("")}</div>` : ""}
+      <details class="tech">
+        <summary data-tip="The original reason written by the AI or the rules, with all the numbers and rule codes.">Full reason (technical)</summary>
+        <div class="reason">${esc(r.reason)}</div>
+        <div class="note">${esc(r.created_at.replace("T", " "))}${r.model ? ` · ${esc(r.model)}` : ""}${r.latency_ms ? ` · ${r.latency_ms} ms` : ""}</div>
+      </details>
+    </div>`;
+}
+
+function extraHtml(r, w) {
+  // Spend goal: progress bar. Pick your perk: the two choices and which one they picked.
+  if (r.offer_id === "SPEND_GOAL" && w?.goal_target) {
+    const spent = 0;  // live orders after the offer fill this in (Telegram bot / real store)
+    return `<div class="goal" data-tip="How close they are to the spend goal. It fills in as they shop after the offer is sent.">
+      <div class="why-label">🎯 Goal progress</div>
+      <div class="bar"><span style="width:${Math.min(100, (spent / w.goal_target) * 100)}%"></span></div>
+      <div class="note">${inr(spent)} of ${inr(w.goal_target)} · fills in as they shop</div></div>`;
+  }
+  if (r.offer_id === "PERK_CHOICE") {
+    const pick = w?.perk;
+    return `<div class="perk-opts" data-tip="The customer replies 1 or 2. Their pick is remembered, so next time we send that perk directly.">
+      <div class="${pick === "FREE_SHIPPING" ? "picked" : ""}">1 · 🚚 Free delivery${pick === "FREE_SHIPPING" ? " ✓" : ""}</div>
+      <div class="${pick === "BONUS_POINTS" ? "picked" : ""}">2 · ⭐ Bonus points${pick === "BONUS_POINTS" ? " ✓" : ""}</div></div>
+      <div class="note">${pick ? "They picked: " + esc(offerName(pick)) : "Waiting for their reply (1 or 2)"}</div>`;
+  }
+  return "";
+}
+
+function whyHtml(w) {
+  // Plain-words explanation built by src/explain.py: one short line per question.
+  const filled = Math.max(w.chance_pct > 0 ? 1 : 0, Math.round(w.chance_pct / 10));
+  const meter = `<div class="meter" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i class="${i < filled ? "on" : ""}"></i>`).join("")}</div>`;
+  const row = (ico, label, text, extra = "", cls = "", tip = "") =>
+    `<div class="why-row ${cls}"${tipAttr(tip)}><span class="why-ico" aria-hidden="true">${ico}</span><div><span class="why-label">${label}</span>${extra}<span class="why-text">${esc(text)}</span></div></div>`;
+  return `
+    <div class="why">
+      <div class="why-head" data-tip="The decision explained in plain words, built from the same numbers the engine used.">Why this decision?</div>
+      ${row("👤", "Who", w.who, "", "", "What kind of shopper this is, from their orders and browsing.")}
+      ${row("🎯", "Would they buy anyway?", w.chance, meter, "", "Each bar is 10 in 100. If they'd buy anyway, a discount is wasted money.")}
+      ${row("🎁", "What we send", w.what, "", "", "The offer in plain words, with its conditions.")}
+      ${row("💰", "Is it worth it?", w.worth, "", w.worth_tone === "good" ? "good" : "", "What it costs us and what we expect to earn back, on average.")}
+      ${row("📏", "Rule we followed", w.rule, "", "", "The business rule that mattered most for this choice.")}
+      <div class="decider" data-tip="Who made this decision.">${esc(w.decider)}</div>
+    </div>`;
+}
+
+function activeHtml(c) {
+  // An earlier offer that is still valid: shown so a blocked new decision doesn't hide it.
+  const a = c.active;
+  if (!a || (c.latest && a.id === c.latest.id)) return "";
+  return `
+    <div class="offer">
+      <div class="row">
+        <span class="pill st-READY" data-tip="An earlier offer this customer still has. A new paid offer waits until it ends.">ACTIVE OFFER</span>
+        <span class="pill by-${esc(a.decided_by)}"${tipAttr(PILL_TIPS[a.decided_by])}>${a.decided_by === "AGENT" ? "AI AGENT" : esc(a.decided_by)}</span>
+        <span class="note">sent ${esc(a.created_at.replace("T", " ").slice(0, 16))} · valid until ${esc((a.valid_until || "").replace("T", " ").slice(0, 16))}</span>
+      </div>
+      <div class="offer-title">${esc(offerLabel(a))}</div>
+      ${a.message ? `<div class="bubble">${esc(a.message)}</div>` : ""}
+      <div class="note">Latest decision below:</div>
+    </div>`;
+}
+
+function render() {
+  // The compact list: one line per customer, details open in the side panel.
+  $("rows").innerHTML = state.rows.map((c) => {
+    // A customer still holding a live offer shows that offer, even if a later check found nothing new to send.
+    const holding = c.live && (!c.latest || c.latest.id !== c.live.id);
+    const r = holding ? c.live : c.latest, k = r ? (r.offer_id || "NONE") : null;
+    const until = holding ? ` <span class="note" data-tip="They already have this offer, so they get nothing new until it ends.">· live until ${esc((c.live.valid_until || "").slice(0, 10))}</span>` : "";
+    const by = r ? (r.decided_by === "AGENT" ? "AI" : r.decided_by === "SYSTEM" ? "Before any offer" : r.decided_by === "EXPLORE" ? "Random (learning)" : "Rules") : "–";
+    const pct = Math.round((c.p_buy_7d || 0) * 100);
+    return `<tr tabindex="0" data-id="${esc(c.customer_id)}" class="${state.open === c.customer_id ? "open" : ""}">
+      <td class="cust"><b>${esc(c.name)}${r?.flagged ? ' <span class="flagdot" data-tip="Needs a look">⚑</span>' : ""}</b><span>${esc(c.customer_id)}</span></td>
+      <td><span class="pill seg"${tipAttr(segTip(c.segment))}>${esc(segName(c.segment))}</span></td>
+      <td>${k ? `${offerIcon(k)} ${esc(offerName(k))}${r.value ? ` <span class="note">${esc(offerLabel(r).split(" · ")[1] || "")}</span>` : ""}${until}` : '<span class="note">Not decided</span>'}</td>
+      <td class="hide-sm"><span class="pill by-${esc(r?.decided_by || "SYSTEM")}">${esc(by)}</span></td>
+      <td class="hide-sm num">${r?.est_cost_inr ? inr(r.est_cost_inr) : '<span class="note">free</span>'}</td>
+      <td class="hide-sm"><div class="mini"><div class="bar"><span style="width:${pct}%"></span></div><span class="note">${pct} in 100</span></div></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty" style="cursor:default">No customers match. Try clearing the search or filters.</td></tr>`;
+  const from = state.total ? (state.page - 1) * state.size + 1 : 0, to = Math.min(state.total, state.page * state.size);
+  $("count").textContent = `Showing ${from}–${to} of ${state.total.toLocaleString("en-IN")} customers`;
+  renderPager();
+  renderOfferSummary();
+  renderStats();
+}
+
+function renderPager() {
+  const pages = Math.max(1, Math.ceil(state.total / state.size)), p = state.page;
+  const nums = [...new Set([1, p - 1, p, p + 1, pages])].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b);
+  let html = `<button data-page="${p - 1}" ${p <= 1 ? "disabled" : ""} data-tip="Previous page">‹ Prev</button>`;
+  nums.forEach((n, i) => {
+    if (i && n - nums[i - 1] > 1) html += `<span class="gap">…</span>`;
+    html += `<button data-page="${n}" ${n === p ? 'aria-current="page"' : ""}>${n}</button>`;
+  });
+  html += `<button data-page="${p + 1}" ${p >= pages ? "disabled" : ""} data-tip="Next page">Next ›</button>`;
+  $("pager").innerHTML = pages > 1 ? html : "";
+}
+
+async function openCustomer(id) {
+  state.open = id;
+  document.querySelectorAll("#rows tr").forEach((tr) => tr.classList.toggle("open", tr.dataset.id === id));
+  const c = await api(`/api/customer/${encodeURIComponent(id)}?now=${encodeURIComponent(nowValue())}`);
+  $("drawerTitle").textContent = `${c.name} · ${c.customer_id}`;
+  $("drawerBody").innerHTML = `
+    <article class="card ${c.latest?.flagged ? "flagged" : ""}" data-id="${esc(c.customer_id)}">
+      <div class="top">
+        <div><div class="persona" data-tip="The customer's true behaviour type in the simulation. The engine never sees this: it's shown only so you can judge the decision.">hidden persona (test only): ${esc(c.persona)}</div></div>
+        <span class="pill seg"${tipAttr(segTip(c.segment))}>${esc(segName(c.segment))}</span>
+      </div>
+      <div class="chips">${chips(c)}</div>
+      ${activeHtml(c)}
+      ${decisionHtml(c.latest, c.simple)}
+      <div class="actions">
+        <button data-act="decide" data-tip="Make a fresh decision for just this customer at the time chosen above.">Decide again</button>
+        <button data-act="history" data-tip="Show every offer this customer has received, newest first.">History</button>
+      </div>
+      <div class="hist"></div>
+      <div class="triggers">
+        <div class="why-label">⚡ Test an automatic trigger</div>
+        <div class="note">Pretend this happens in the store: the system reacts by itself (no Decide button).</div>
+        <div class="row">
+          <button data-trigger="cart_abandoned" data-tip="They leave ${esc(c.focus_product_name || "an item")} in the cart. Normally the system waits 1 hour; here it reacts straight away.">🛒 Leaves cart</button>
+          <button data-trigger="order_placed" data-tip="They buy ${esc(c.focus_product_name || "something")}. A bought-together tip follows 3 days later.">📦 Places an order</button>
+          <button data-trigger="wishlist_price_drop" data-tip="${esc(c.focus_product_name || "A wishlist item")} gets 20% cheaper.">👀 Wishlist price drop</button>
+        </div>
+      </div>
+    </article>`;
+  state.openCustomer = c;
+  $("drawer").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false"); $("scrim").classList.add("show");
+  $("drawerClose").focus();
+}
+
+function closeCustomer() {
+  const id = state.open;
+  state.open = null;
+  $("drawer").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); $("scrim").classList.remove("show");
+  document.querySelectorAll("#rows tr").forEach((tr) => tr.classList.remove("open"));
+  document.querySelector(`#rows tr[data-id="${CSS.escape(id || "")}"]`)?.focus();
+}
+
+async function loadAutomation() {
+  try {
+    const a = await api("/api/automation");
+    const on = a.last_tick && (Date.now() - new Date(a.last_tick).getTime()) < 5 * 60 * 1000;
+    const recent = a.recent.filter((e) => e.done_at).slice(0, 1)[0];
+    $("auto").innerHTML = `<span><span class="dot ${on ? "" : "off"}"></span><b>Automatic decisions ${on ? "on" : "off"}</b></span>
+      <span>daily check of everyone: <b>${esc(a.next_daily.replace("T", " "))}</b></span>
+      <span>events waiting: <b>${a.waiting}</b></span><span>handled today: <b>${a.handled_today}</b></span>
+      <span>${a.use_agent ? "AI first, rules check" : "rules only"} · sending: <b>${esc(a.delivery_mode === "dry_run" ? "test mode (nothing really sent)" : "live")}</b></span>
+      <span>Telegram: <b>${a.telegram?.configured ? esc(`${a.telegram.bot || "connected"} · ${a.telegram.test_mode ? `test mode → ${a.telegram.test_chats} test chat(s)` : `${a.telegram.linked_customers} real customers`}`) : "not set up"}</b></span>
+      ${recent ? `<span>last: ${esc(recent.kind.replace("_", " "))} for ${esc(recent.customer_id)} → ${esc(recent.result)}</span>` : ""}`;
+  } catch (e) { $("auto").textContent = "Automatic decisions: status unavailable"; }
+}
+
+async function sendEvent(kind, customerId, payload, btn) {
+  const label = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = "Reacting…"; }
+  try {
+    const out = await api("/api/events", { kind, customer_id: customerId, payload, delay_minutes: 0, process_now: true, now: nowValue() });
+    const res = out.processed?.[0]?.[3] || "queued";
+    $("banner").innerHTML = `<div class="note" style="margin-top:8px">⚡ ${esc(kind.replace("_", " "))} for ${esc(customerId)} → ${esc(res)}</div>`;
+    await load();
+    await loadAutomation();
+    if (state.open === customerId || kind === "signup") await openCustomer(customerId);
+  } catch (e) {
+    $("banner").innerHTML = `<div class="err">Event failed: ${esc(e.message)}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
+}
+
+function renderStats() {
+  const s = state.status, m = state.summary;
+  const pct = Math.min(100, Math.round((state.spent / (s.daily_budget_inr || 1)) * 100));
+  const tiles = [
+    ["", `${m.decided.toLocaleString("en-IN")}/${m.customers.toLocaleString("en-IN")}`, "customers decided", "How many customers have a decision so far."],
+    ["", m.ready.toLocaleString("en-IN"), "offers ready to send", "Customers who will get a message."],
+    ["", m.kinds, "kinds of offers used", "How many different offers are in use (reminders, free delivery, coupons...)."],
+    ["ai", m.by_ai.toLocaleString("en-IN"), "chosen by the AI", "Decisions the AI made and the rules approved."],
+    ["rules", m.by_rules.toLocaleString("en-IN"), "chosen by the rules", "Decisions made by the rules alone (AI off, or the AI failed)."],
+    ["", m.held.toLocaleString("en-IN"), "no offer: test group or no consent",
+     "Customers kept without offers to measure the real effect, or who haven't agreed to messages."],
+    [m.flagged ? "bad" : "", m.flagged, "need a look ⚑", "Decisions a person should check. Tick 'Only ones that need a look' to see them."],
+  ];
+  $("stats").innerHTML = tiles.map(([cls, v, k, tip]) =>
+    `<div class="tile ${cls}" data-tip="${esc(tip)}"><div class="v">${esc(v)}</div><div class="k">${esc(k)}</div></div>`).join("") +
+    `<div class="tile" data-tip="Money promised in offers today, out of the daily limit. The limit can never be passed.">
+       <div class="v">${esc(inr(state.spent))}</div><div class="k">spent today of ${esc(inr(s.daily_budget_inr))}</div>
+       <div class="bar"><span style="width:${pct}%"></span></div></div>`;
+}
+
+async function load() {
+  const params = new URLSearchParams({ now: nowValue(), page: state.page, size: state.size, q: state.q, sort: state.sort,
+    segment: $("segFilter").value, offer: state.offer, flagged: $("flaggedOnly").checked ? "1" : "0" });
+  const data = await api(`/api/customers?${params}`);
+  Object.assign(state, { rows: data.rows, total: data.total, summary: data.summary, focus: data.focus, spent: data.spent_today_inr });
+  const pages = Math.max(1, Math.ceil(state.total / state.size));
+  if (state.page > pages) { state.page = pages; return load(); }
+  const sel = $("segFilter"), current = sel.value;
+  sel.innerHTML = `<option value="">All customer groups</option>` + Object.keys(state.summary.segments).sort().map((sg) =>
+    `<option value="${esc(sg)}" ${sg === current ? "selected" : ""}>${esc(segName(sg))} (${state.summary.segments[sg]})</option>`).join("");
+  renderOfferFilter();
+  render();
+}
+
+const reload = () => { state.page = 1; load(); };
+
+async function runDecide(ids, btn) {
+  const buttons = document.querySelectorAll("button");
+  buttons.forEach((b) => (b.disabled = true));
+  const label = btn.textContent;
+  btn.textContent = $("useAgent").checked ? "Asking the AI…" : "Deciding…";
+  try {
+    await api("/api/decide", { customer_ids: ids, now: nowValue(), use_agent: $("useAgent").checked });
+    await load();
+    if (state.open) await openCustomer(state.open);
+  } catch (e) {
+    $("banner").innerHTML = `<div class="err">Request failed: ${esc(e.message)}</div>`;
+  } finally {
+    btn.textContent = label;
+    buttons.forEach((b) => (b.disabled = false));
+  }
+}
+
+async function toggleHistory(card) {
+  const box = card.querySelector(".hist");
+  if (box.classList.toggle("open")) {
+    const rows = await api(`/api/history/${encodeURIComponent(card.dataset.id)}`);
+    box.innerHTML = rows.length ? rows.map((r) =>
+      `<div>${esc(r.created_at.replace("T", " "))} · <b>${esc(offerLabel(r))}</b> · ${esc(r.status)} · ${esc(r.decided_by)}${r.flagged ? " · ⚑" : ""}</div>`
+    ).join("") : `<span class="empty">No history.</span>`;
+  }
+}
+
+$("drawerBody").addEventListener("click", (e) => {
+  const trig = e.target.closest("button[data-trigger]");
+  if (trig) {
+    const c = state.openCustomer, k = trig.dataset.trigger, price = c.focus_product_price || 999;
+    const payload = { product_id: c.focus_product_id, item: c.focus_product_name, value: price, total: price,
+                      category: c.focus_product_category, was_price: Math.round(price / 0.8), price };
+    return sendEvent(k, c.customer_id, payload, trig);
+  }
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const card = btn.closest(".card");
+  if (btn.dataset.act === "decide") runDecide([card.dataset.id], btn);
+  else toggleHistory(card);
+});
+$("rows").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-id]"); if (tr) openCustomer(tr.dataset.id); });
+$("rows").addEventListener("keydown", (e) => {
+  const tr = e.target.closest("tr[data-id]");
+  if (!tr) return;
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCustomer(tr.dataset.id); }
+  if (e.key === "ArrowDown") { e.preventDefault(); tr.nextElementSibling?.focus(); }
+  if (e.key === "ArrowUp") { e.preventDefault(); tr.previousElementSibling?.focus(); }
+});
+$("pager").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-page]");
+  if (!b || b.disabled) return;
+  state.page = Number(b.dataset.page);
+  load().then(() => document.querySelector("main").scrollIntoView({ behavior: "smooth", block: "start" }));
+});
+$("drawerClose").addEventListener("click", closeCustomer);
+$("newCustomer").addEventListener("click", (e) => {
+  const name = prompt("New customer's name:", "Riya Sharma");
+  if (!name) return;
+  const interest = prompt("What do they shop for? (Fashion, Beauty, Home, Books, Electronics, Mobiles, Grocery)", "Beauty") || "Fashion";
+  const id = "N" + Date.now().toString().slice(-6);
+  sendEvent("signup", id, { name, interest, opted_in: true, channels: ["telegram"] }, e.currentTarget);
+});
+setInterval(loadAutomation, 15000);
+$("scrim").addEventListener("click", closeCustomer);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.open) closeCustomer(); });
+let searchTimer;
+$("search").addEventListener("input", (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.q = e.target.value.trim(); reload(); }, 250);
+});
+$("sort").addEventListener("change", (e) => { state.sort = e.target.value; reload(); });
+$("size").addEventListener("change", (e) => { state.size = Number(e.target.value); reload(); });
+document.querySelectorAll("button[data-shift]").forEach((b) => b.addEventListener("click", () => {
+  const d = new Date($("now").value);
+  d.setHours(d.getHours() + Number(b.dataset.shift));
+  $("now").value = toLocalInput(d);
+  load();
+}));
+$("now").addEventListener("change", () => load());
+$("decideAll").addEventListener("click", (e) => runDecide(null, e.currentTarget));
+$("reset").addEventListener("click", async () => {
+  if (!confirm("Clear the whole offer log?")) return;
+  await api("/api/reset", {});
+  load();
+});
+$("segFilter").addEventListener("change", reload);
+
+// One shared hover/focus tooltip for every [data-tip] element, kept inside the window.
+(function tooltips() {
+  const tip = $("tip");
+  let current = null;
+  function show(el) {
+    current = el;
+    tip.textContent = el.dataset.tip;
+    tip.classList.add("show");
+    const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    let x = r.left + r.width / 2 - t.width / 2;
+    x = Math.max(8, Math.min(x, window.innerWidth - t.width - 8));
+    let y = r.bottom + 8;
+    if (y + t.height > window.innerHeight - 8) y = r.top - t.height - 8;
+    tip.style.left = `${x}px`;
+    tip.style.top = `${Math.max(8, y)}px`;
+  }
+  function hide() { current = null; tip.classList.remove("show"); }
+  document.addEventListener("mouseover", (e) => {
+    const el = e.target.closest("[data-tip]");
+    if (el && el !== current) show(el); else if (!el && current) hide();
+  });
+  document.addEventListener("focusin", (e) => { const el = e.target.closest("[data-tip]"); if (el) show(el); });
+  document.addEventListener("focusout", hide);
+  window.addEventListener("scroll", hide, { passive: true });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
+})();
+$("flaggedOnly").addEventListener("change", reload);
+$("offerFilter").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-offer]");
+  if (!b) return;
+  state.offer = b.dataset.offer === state.offer ? "" : b.dataset.offer;  // click again to clear
+  reload();
+});
+
+(async function init() {
+  const start = new Date(); start.setSeconds(0, 0);  // now: decisions made here can be sent straight away
+  $("now").value = toLocalInput(start);
+  state.status = await api("/api/status");
+  const s = state.status;
+  $("meta").textContent = `${s.customers_file} · holdout ${s.holdout_pct}% · model ${s.model} (${s.effort})`;
+  $("useAgent").checked = s.agent_configured;
+  if (!s.agent_configured) {
+    $("banner").innerHTML = `<div class="err" style="background:var(--warn-bg);color:var(--warn)">No ANTHROPIC_API_KEY in .env: with "Use AI agent" on, every decision will fail over to the rules and be flagged. Turn it off for rules-only.</div>`;
+  }
+  load();
+  loadAutomation();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,419 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=block" rel="stylesheet">
+<style>
+  /* A 1920x1080 stage. Everything is positioned by renderAt(t): no CSS transitions, so every frame
+     is exactly determined by the time t (no jitter, no dropped motion). */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: #04070c; }
+  body { font-family: Inter, "Segoe UI", sans-serif; color: #eef3fb; -webkit-font-smoothing: antialiased; }
+  .abs { position: absolute; }
+  #bg { position: absolute; inset: 0; overflow: hidden; }
+  .glow { position: absolute; border-radius: 50%; filter: blur(140px); opacity: .55; will-change: transform; }
+  #grid { position: absolute; inset: 0; opacity: .25;
+          background-image: linear-gradient(rgba(120,200,190,.06) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(120,200,190,.06) 1px, transparent 1px);
+          background-size: 64px 64px;
+          -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%); }
+  .layer { position: absolute; inset: 0; opacity: 0; }
+
+  /* intro */
+  .kicker { font-size: 22px; font-weight: 700; letter-spacing: .42em; color: #2ee6b8; text-transform: uppercase; }
+  .headline { font-size: 92px; font-weight: 800; letter-spacing: -.02em; line-height: 1.06; text-align: center; }
+  .headline span { display: inline-block; margin: 0 .12em; }
+  .hl { background: linear-gradient(90deg, #2ee6b8, #38bdf8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .chip { display: flex; align-items: center; gap: 18px; padding: 18px 26px; border-radius: 18px;
+          background: rgba(20,30,46,.75); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+  .chip .ico { width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; font-size: 28px; }
+  .chip b { display: block; font-size: 26px; font-weight: 700; }
+  .chip small { display: block; font-size: 18px; color: #93a3bb; margin-top: 3px; }
+
+  /* app window */
+  #camera { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; will-change: transform; }
+  #window { position: absolute; left: 216px; top: 70px; width: 1488px; border-radius: 18px; overflow: hidden;
+            background: #0b111b; border: 1px solid rgba(255,255,255,.10); box-shadow: 0 40px 120px rgba(0,0,0,.6), 0 0 0 1px rgba(46,230,184,.05); }
+  #chrome { height: 44px; display: flex; align-items: center; padding: 0 18px; gap: 9px; background: #0f1724; border-bottom: 1px solid rgba(255,255,255,.07); }
+  .dot { width: 13px; height: 13px; border-radius: 50%; }
+  #url { margin: 0 auto; width: 520px; height: 28px; border-radius: 8px; background: #070b12; color: #b8c4d6; font-size: 15px;
+         display: flex; align-items: center; justify-content: center; gap: 8px; }
+  #badge { position: absolute; right: 16px; top: 8px; font-size: 15px; font-weight: 600; color: #2ee6b8; padding: 5px 12px;
+           border-radius: 999px; background: rgba(46,230,184,.10); border: 1px solid rgba(46,230,184,.35); }
+  #app { display: block; width: 1488px; height: 837px; border: 0; background: #12151b; }
+
+  /* overlays in stage space (crisp, never scaled) */
+  #ring { position: absolute; border-radius: 14px; border: 3px solid #2ee6b8; box-shadow: 0 0 0 6px rgba(46,230,184,.18), 0 0 40px rgba(46,230,184,.45); opacity: 0; }
+  #cursor { position: absolute; width: 30px; height: 30px; margin: -4px 0 0 -4px; opacity: 0; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  #ripple { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 3px solid #2ee6b8; opacity: 0; }
+  .callout { position: absolute; display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-radius: 16px;
+             background: rgba(9,14,22,.92); border: 1px solid rgba(46,230,184,.35); box-shadow: 0 18px 50px rgba(0,0,0,.5); opacity: 0; white-space: nowrap; }
+  .callout .ci { width: 40px; height: 40px; border-radius: 11px; background: rgba(46,230,184,.15); display: grid; place-items: center; font-size: 22px; }
+  .callout b { display: block; font-size: 22px; font-weight: 700; }
+  .callout small { display: block; font-size: 16px; color: #93a3bb; margin-top: 2px; }
+  #intro-badge { position: absolute; left: 150px; top: 760px; display: flex; align-items: center; gap: 22px; padding: 22px 34px 22px 22px;
+                 border-radius: 22px; background: rgba(12,18,28,.86); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 30px 80px rgba(0,0,0,.55); opacity: 0; }
+  .logo { width: 76px; height: 76px; border-radius: 20px; background: linear-gradient(135deg, #2ee6b8, #38bdf8);
+          display: grid; place-items: center; box-shadow: 0 10px 40px rgba(46,230,184,.4); }
+  .logo svg { width: 46px; height: 46px; }
+
+  /* results */
+  .bar { position: absolute; bottom: 0; width: 210px; border-radius: 18px 18px 6px 6px; }
+  .barlabel { position: absolute; width: 260px; text-align: center; font-size: 24px; color: #93a3bb; font-weight: 600; }
+  .barval { position: absolute; width: 260px; text-align: center; font-size: 46px; font-weight: 800; }
+  .stat { position: absolute; left: 1210px; width: 560px; height: 150px; border-radius: 22px; padding: 0 34px;
+          background: rgba(20,30,46,.75); border: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 26px; }
+  .stat .big { font-size: 74px; font-weight: 800; width: 210px; }
+  .stat .lbl { font-size: 26px; color: #dbe4f1; line-height: 1.3; }
+
+  /* generic card scenes */
+  .cs-kicker { position: absolute; left: 150px; top: 130px; }
+  .cs-title { position: absolute; left: 150px; top: 172px; width: 1620px; font-size: 64px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+  .cs-grid { position: absolute; left: 150px; top: 340px; width: 1620px; display: grid; gap: 30px; }
+  .cs-card { border-radius: 24px; padding: 30px 30px 28px; background: rgba(18,27,42,.78); border: 1px solid rgba(255,255,255,.08);
+             box-shadow: 0 24px 60px rgba(0,0,0,.35); min-height: 270px; position: relative; overflow: hidden; }
+  .cs-card .ic { width: 80px; height: 80px; border-radius: 22px; display: grid; place-items: center; font-size: 42px; background: rgba(46,230,184,.12); }
+  .cs-card .big { font-size: 78px; font-weight: 800; letter-spacing: -.02em; margin-top: 18px; line-height: 1; }
+  .cs-card .ti { font-size: 33px; font-weight: 700; margin-top: 20px; line-height: 1.2; }
+  .cs-card .su { font-size: 24px; color: #93a3bb; margin-top: 10px; line-height: 1.35; }
+  .cs-card .edge { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+  /* formula */
+  .fx-box { position: absolute; left: 150px; top: 330px; width: 1620px; height: 170px; border-radius: 26px; background: rgba(18,27,42,.8);
+            border: 1px solid rgba(46,230,184,.3); display: flex; align-items: center; justify-content: center; gap: 22px; font-size: 44px; font-weight: 800; white-space: nowrap; }
+  .fx-part { padding: 6px 16px; border-radius: 14px; }
+  .ex { position: absolute; top: 560px; width: 790px; height: 330px; border-radius: 24px; padding: 34px 38px; background: rgba(18,27,42,.78);
+        border: 1px solid rgba(255,255,255,.08); }
+  .ex .h { font-size: 30px; font-weight: 800; padding-right: 210px; } .ex .r { font-size: 25px; color: #c7d3e3; margin-top: 14px; line-height: 1.45; }
+  .ex .v { position: absolute; right: 38px; top: 30px; font-size: 52px; font-weight: 800; }
+  /* journey */
+  .jb { position: absolute; bottom: 0; width: 170px; border-radius: 16px 16px 6px 6px; }
+  .jv { position: absolute; width: 230px; text-align: center; font-size: 34px; font-weight: 800; }
+  .jl { position: absolute; width: 230px; text-align: center; font-size: 22px; color: #93a3bb; line-height: 1.3; font-weight: 600; }
+
+  /* captions */
+  #caption { position: absolute; left: 50%; top: 982px; transform: translateX(-50%); padding: 10px 26px; border-radius: 14px;
+             font-size: 34px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; background: rgba(4,7,12,.55); opacity: 0; }
+</style>
+</head>
+<body>
+<div id="bg">
+  <div class="glow" id="g1" style="width:900px;height:700px;background:#0e5a4c"></div>
+  <div class="glow" id="g2" style="width:800px;height:600px;background:#0d3550"></div>
+  <div class="glow" id="g3" style="width:700px;height:500px;background:#1d2b55"></div>
+  <div id="grid"></div>
+</div>
+
+<!-- 1. Intro -->
+<div class="layer" id="L-intro">
+  <div class="abs kicker" id="kick" style="left:0;width:1920px;text-align:center;top:300px">For online stores</div>
+  <div class="abs headline" id="head" style="left:160px;width:1600px;top:360px"></div>
+  <div class="abs" id="chips" style="left:0;width:1920px;top:640px;display:flex;justify-content:center;gap:28px">
+    <div class="chip" id="chip0"><div class="ico" style="background:rgba(248,113,113,.15)">💸</div><div><b>Wasted on buy-anyway shoppers</b><small>2 of every 3 discount rupees</small></div></div>
+    <div class="chip" id="chip1"><div class="ico" style="background:rgba(251,191,36,.15)">⏳</div><div><b>Shoppers learn to wait</b><small>no sale, no purchase</small></div></div>
+    <div class="chip" id="chip2"><div class="ico" style="background:rgba(56,189,248,.15)">🔕</div><div><b>Too many messages</b><small>so they unsubscribe</small></div></div>
+  </div>
+</div>
+
+<!-- 2. App in a browser window, moved by the camera -->
+<div class="layer" id="L-app">
+  <div id="camera">
+    <div id="window">
+      <div id="chrome">
+        <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+        <div id="url">🔒 offers.ai-offer-engine.app</div>
+        <div id="badge">● Live · AI decisions</div>
+      </div>
+      <iframe id="app" src="about:blank"></iframe>
+    </div>
+  </div>
+  <div id="ring"></div>
+  <div class="callout" id="callout"><div class="ci" id="callout-i"></div><div><b id="callout-b"></b><small id="callout-s"></small></div></div>
+  <div id="ripple"></div>
+  <svg id="cursor" viewBox="0 0 24 24"><path d="M3 2l7.5 19 2.4-7.6L20.5 11z" fill="#fff" stroke="#0b111b" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  <div id="intro-badge"><div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#06231d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2.8 12.8V2.8h10l7.8 7.8a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.6" fill="#06231d"/><path d="M16 3.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="#06231d" stroke="none"/></svg></div>
+    <div><div style="font-size:20px;font-weight:700;letter-spacing:.24em;color:#2ee6b8">INTRODUCING</div><div style="font-size:52px;font-weight:800;letter-spacing:-.02em">AI Offer Engine</div></div></div>
+</div>
+
+<!-- 3. Results -->
+<div class="layer" id="L-results">
+  <div class="abs kicker" style="left:150px;top:150px">Results</div>
+  <div class="abs" style="left:150px;top:190px;font-size:72px;font-weight:800;letter-spacing:-.02em"><span class="hl" id="x3">3×</span> the profit of a blanket discount</div>
+  <div class="abs" style="left:150px;top:330px;font-size:22px;color:#93a3bb">Extra margin per week vs sending no offers</div>
+  <div class="abs" id="bars" style="left:150px;top:380px;width:960px;height:520px">
+    <div class="bar" id="b0" style="left:25px;background:linear-gradient(#fb923c,#c2410c)"></div>
+    <div class="bar" id="b1" style="left:345px;background:linear-gradient(#60a5fa,#1d4ed8)"></div>
+    <div class="bar" id="b2" style="left:665px;background:linear-gradient(#2ee6b8,#0f766e);box-shadow:0 0 60px rgba(46,230,184,.35)"></div>
+    <div class="barval" id="v0" style="left:0"></div><div class="barval" id="v1" style="left:320px"></div><div class="barval" id="v2" style="left:640px"></div>
+    <div class="barlabel" style="left:0;top:540px">10% to everyone</div><div class="barlabel" style="left:320px;top:540px">Rules only</div>
+    <div class="barlabel" style="left:640px;top:540px;color:#2ee6b8">AI Offer Engine</div>
+  </div>
+  <div class="stat" id="s0" style="top:390px"><div class="big hl">88%</div><div class="lbl">less spent<br>on discounts</div></div>
+  <div class="stat" id="s1" style="top:570px"><div class="big" style="color:#60a5fa">₹51</div><div class="lbl">per extra sale<br><span style="color:#93a3bb">vs ₹358 for a blanket 10%</span></div></div>
+  <div class="stat" id="s2" style="top:750px"><div class="big" style="color:#fb923c">+42%</div><div class="lbl">margin vs<br>sending no offers</div></div>
+  <div class="abs" style="left:150px;top:955px;font-size:17px;color:#6b7b93">Simulation · 200 customers · 1,000 simulated weeks · calibrated on Flipkart, RetailRocket and Hillstrom data</div>
+</div>
+
+<!-- 4. Tagline -->
+<div class="layer" id="L-tagline">
+  <div class="abs headline" id="t0" style="left:0;width:1920px;top:340px">Smarter offers.</div>
+  <div class="abs headline" id="t1" style="left:0;width:1920px;top:450px;color:#2ee6b8">Zero wasted discounts.</div>
+  <div class="abs headline hl" id="t2" style="left:0;width:1920px;top:560px">More profit.</div>
+</div>
+
+<!-- 5. End card -->
+<div class="layer" id="L-end">
+  <div class="abs" style="left:0;width:1920px;top:250px;display:flex;justify-content:center"><div class="logo" id="endlogo" style="width:120px;height:120px;border-radius:30px"><svg style="width:70px;height:70px" viewBox="0 0 24 24" fill="none" stroke="#06231d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2.8 12.8V2.8h10l7.8 7.8a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.6" fill="#06231d"/><path d="M16 3.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" fill="#06231d" stroke="none"/></svg></div></div>
+  <div class="abs headline" id="e0" style="left:0;width:1920px;top:410px;font-size:96px">AI Offer Engine</div>
+  <div class="abs" id="e1" style="left:0;width:1920px;top:535px;text-align:center;font-size:40px;color:#c7d3e3;font-weight:500">Every offer, only when it pays.</div>
+  <div class="abs" id="e2" style="left:0;width:1920px;top:625px;display:flex;justify-content:center;gap:14px"></div>
+  <div class="abs" id="e3" style="left:0;width:1920px;top:720px;text-align:center;font-size:26px;color:#93a3bb">Looking for <b style="color:#2ee6b8">pilot partners &amp; investors</b></div>
+</div>
+
+<div id="cardsHost"></div>
+
+<div class="layer" id="L-formula">
+  <div class="abs kicker" style="left:150px;top:130px">The profit test</div>
+  <div class="abs cs-title" style="top:172px">Every paid offer must earn more than it costs</div>
+  <div class="fx-box"><span class="fx-part" id="fx0">(extra chance of a sale</span><span>×</span><span class="fx-part" id="fx1">margin)</span>
+    <span>−</span><span class="fx-part" id="fx2">cost × everyone who uses it</span></div>
+  <div class="ex" id="ex0" style="left:150px"><div class="h">🙋 A shopper an offer can persuade</div>
+    <div class="r">Buy chance 10% → 16% · order margin ₹400 · offer costs ₹100<br>0.06 × 400 − 0.16 × 100</div><div class="v" style="color:#2ee6b8">+₹8 ✓</div>
+    <div class="r" style="color:#2ee6b8;font-weight:700">Worth sending</div></div>
+  <div class="ex" id="ex1" style="left:980px"><div class="h">🛍️ A shopper who'd buy anyway</div>
+    <div class="r">Buy chance 60% → 70% · margin ₹400 · cost ₹100<br>0.10 × 400 − 0.70 × 100</div><div class="v" style="color:#f87171">−₹30 ✕</div>
+    <div class="r" style="color:#f87171;font-weight:700">Blocked: the discount is wasted</div></div>
+</div>
+
+<div class="layer" id="L-journey">
+  <div class="abs kicker" style="left:150px;top:130px">How the profit grew</div>
+  <div class="abs cs-title" style="top:172px">From guesses to honest, real-data numbers</div>
+  <div class="abs" style="left:150px;top:290px;font-size:22px;color:#93a3bb">AI engine · extra margin per week vs sending no offers (₹)</div>
+  <div class="abs" id="jchart" style="left:150px;top:380px;width:1620px;height:400px"></div>
+  <div class="abs" id="jnote" style="left:150px;top:960px;font-size:18px;color:#6b7b93">Hand-made data was too optimistic; calibrating on Flipkart, RetailRocket and Hillstrom made the numbers realistic.</div>
+</div>
+
+<div id="caption"></div>
+
+<script>
+// ---------- timeline helpers ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };  // easeInOutCubic
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const lerp = (a, b, k) => a + (b - a) * k;
+const $ = (id) => document.getElementById(id);
+const fade = (t, a, b, dur = .45) => clamp((t - a) / dur) * clamp((b - t) / dur);  // in at a, out at b
+let TL = null, RECTS = {};
+
+function setup(tl) {
+  TL = tl;
+  // headline words
+  const words = TL.headline.map((w) => `<span class="${w.hl ? "hl" : ""}">${w.text}</span>`).join("");
+  $("head").innerHTML = words;
+  buildCards();
+  $("e2").innerHTML = ["Claude AI decides", "31 rules check", "Explains itself", "Runs automatically", "Never sells at a loss"]
+    .map((p) => `<div style="padding:10px 20px;border-radius:999px;font-size:21px;font-weight:600;background:rgba(46,230,184,.10);border:1px solid rgba(46,230,184,.35);color:#bff5e6">${p}</div>`).join("");
+}
+function setRects(r) { RECTS = r; }
+
+function buildCards() {
+  const host = $("cardsHost");
+  host.innerHTML = TL.cardScenes.map((cs) => {
+    const cols = cs.cols || Math.min(cs.cards.length, 4);
+    const cards = cs.cards.map((c, i) => `
+      <div class="cs-card" id="${cs.id}-c${i}">
+        ${c.accent ? `<div class="edge" style="background:${c.accent}"></div>` : ""}
+        <div class="ic" style="${c.accent ? `background:${c.accent}22` : ""}">${c.icon}</div>
+        ${c.big ? `<div class="big" style="color:${c.accent || "#2ee6b8"}">${c.big}</div>` : ""}
+        <div class="ti">${c.title}</div>${c.sub ? `<div class="su">${c.sub}</div>` : ""}
+      </div>`).join("");
+    return `<div class="layer" id="L-${cs.id}">
+      <div class="kicker cs-kicker" id="${cs.id}-k">${cs.kicker}</div>
+      <div class="cs-title" id="${cs.id}-t">${cs.title}</div>
+      <div class="cs-grid" style="grid-template-columns:repeat(${cols},1fr);${cs.cards.length > cols ? "" : "top:420px"}">${cards}</div>
+    </div>`;
+  }).join("");
+  const J = TL.journey, maxV = 9000, H = 400;
+  $("jchart").innerHTML = J.map((j, i) => `
+    <div class="jb" id="jb${i}" style="left:${30 + i * 265}px;background:${j.color}"></div>
+    <div class="jv" id="jv${i}" style="left:${0 + i * 265}px"></div>
+    <div class="jl" style="left:${0 + i * 265}px;top:${H + 30}px">${j.label}</div>`).join("") +
+    `<div class="abs" style="left:0;top:${H}px;width:1600px;height:2px;background:rgba(255,255,255,.12)"></div>`;
+}
+
+// stage position of an iframe rect under the current camera
+function toStage(r, cam) {
+  const wx = 216, wy = 70 + 44, k = 1;  // window content origin at camera identity
+  const x = (wx + r.x * k) * cam.s + cam.tx, y = (wy + r.y * k) * cam.s + cam.ty;
+  return { x, y, w: r.w * k * cam.s, h: r.h * k * cam.s };
+}
+function camAt(t) {
+  const keys = TL.camera;  // [{t, focus:{x,y} in identity stage coords | null, s}]
+  let a = keys[0], b = keys[keys.length - 1];
+  for (let i = 0; i < keys.length - 1; i++) if (t >= keys[i].t && t <= keys[i + 1].t) { a = keys[i]; b = keys[i + 1]; break; }
+  if (t < keys[0].t) b = a;
+  const k = b === a ? 0 : ease((t - a.t) / (b.t - a.t));
+  const f = (key) => {  // focus point: the centre of a target element (follows it), or a fixed point
+    const r = key.target && RECTS[key.target];
+    return r ? [216 + r.x + r.w / 2, 114 + r.y + r.h / 2] : [key.fx ?? 960, key.fy ?? 532];
+  };
+  const [ax, ay] = f(a), [bx, by] = f(b);
+  const s = lerp(a.s, b.s, k), fx = lerp(ax, bx, k), fy = lerp(ay, by, k);
+  return { s, tx: 960 - fx * s, ty: 520 - fy * s };
+}
+function sceneT(id) { return TL.scenes[id]; }
+
+function renderAt(t) {
+  // background drift: slow and continuous
+  $("g1").style.transform = `translate(${-200 + 120 * Math.sin(t / 9)}px, ${-250 + 80 * Math.cos(t / 11)}px)`;
+  $("g2").style.transform = `translate(${1300 + 140 * Math.cos(t / 10)}px, ${600 + 70 * Math.sin(t / 8)}px)`;
+  $("g3").style.transform = `translate(${700 + 160 * Math.sin(t / 13)}px, ${-100 + 90 * Math.sin(t / 7)}px)`;
+
+  // ---- intro
+  const I = sceneT("hook"), R = sceneT("reveal");
+  $("L-intro").style.opacity = fade(t, I.a - .5, sceneT("problem").a + .3, .6);
+  $("kick").style.opacity = easeOut((t - I.a) / .6);
+  $("kick").style.transform = `translateY(${(1 - easeOut((t - I.a) / .6)) * 16}px)`;
+  [...$("head").children].forEach((el, i) => {
+    const k = easeOut((t - TL.headline[i].at) / .5);
+    el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * 28}px)`; el.style.filter = `blur(${(1 - k) * 8}px)`;
+  });
+  TL.chips.forEach((at, i) => {
+    const k = easeOut((t - at) / .55);
+    $("chip" + i).style.opacity = k; $("chip" + i).style.transform = `translateY(${(1 - k) * 24}px) scale(${.96 + .04 * k})`;
+  });
+
+  // ---- app window
+  const wins = [[R.a, R.b], [sceneT("dashboard").a, sceneT("cart").b]];
+  const w = wins.find(([a, b]) => t >= a - .3 && t <= b + .6) || wins[0];
+  const appIn = clamp((t - w[0] + .2) / .9), appOut = clamp((w[1] + .5 - t) / .6);
+  $("L-app").style.opacity = Math.min(easeOut(appIn), appOut);
+  const cam = camAt(t);
+  const fly = 1 - easeOut(appIn);  // window rises in from below
+  $("camera").style.transform = `translate(${cam.tx}px, ${cam.ty + fly * 140}px) scale(${cam.s * (1 - fly * .06)})`;
+  const ib = fade(t, R.a + .6, R.b - .1, .5);
+  $("intro-badge").style.opacity = ib;
+  $("intro-badge").style.transform = `translateY(${(1 - easeOut((t - R.a - .6) / .6)) * 20}px)`;
+
+  // ring + callout on a target
+  const hl = TL.highlights.find((h) => t >= h.a - .4 && t <= h.b + .4);
+  if (hl && RECTS[hl.target]) {
+    const r = toStage(RECTS[hl.target], cam), k = fade(t, hl.a, hl.b, .35);
+    Object.assign($("ring").style, { left: `${r.x - 8}px`, top: `${r.y - 8}px`, width: `${r.w + 16}px`, height: `${r.h + 16}px`, opacity: k * (hl.ring === false ? 0 : 1) });
+    if (hl.title) {
+      $("callout-i").textContent = hl.icon; $("callout-b").textContent = hl.title; $("callout-s").textContent = hl.sub || "";
+      const c = $("callout"), cw = c.offsetWidth, ch = c.offsetHeight;
+      let x = hl.side === "left" ? r.x - cw - 28 : hl.side === "below" ? r.x : r.x + r.w + 28;
+      let y = hl.side === "below" ? r.y + r.h + 24 : r.y + r.h / 2 - ch / 2;
+      x = clamp(x, 30, 1890 - cw); y = clamp(y, 30, 950 - ch);
+      Object.assign(c.style, { left: `${x}px`, top: `${y}px`, opacity: k, transform: `translateY(${(1 - easeOut((t - hl.a) / .4)) * 14}px)` });
+    } else $("callout").style.opacity = 0;
+  } else { $("ring").style.opacity = 0; $("callout").style.opacity = 0; }
+
+  // cursor: moves between targets with easing
+  const cur = TL.cursor;
+  let cp = null, a = null, b = null;
+  for (let i = 0; i < cur.length; i++) if (cur[i].t <= t) a = cur[i];
+  b = cur.find((c) => c.t > t);
+  const pt = (c) => {
+    if (!c) return null;
+    if (c.target && RECTS[c.target]) { const r = toStage(RECTS[c.target], cam); return { x: r.x + r.w * (c.fx ?? .5), y: r.y + r.h * (c.fy ?? .5) }; }
+    return c.xy ? { x: c.xy[0], y: c.xy[1] } : null;
+  };
+  if (a) {
+    const pa = pt(a), pb = b && b.move ? pt(b) : null;
+    if (pa && pb && t >= b.t - b.move) {
+      const k = ease((t - (b.t - b.move)) / b.move);
+      cp = { x: lerp(pa.x, pb.x, k), y: lerp(pa.y, pb.y, k) - Math.sin(k * Math.PI) * 30 };
+    } else cp = pa;
+  }
+  const curVis = TL.cursorWindows.some(([s, e]) => t >= s && t <= e);
+  $("cursor").style.opacity = cp && curVis ? 1 : 0;
+  if (cp) { $("cursor").style.left = `${cp.x}px`; $("cursor").style.top = `${cp.y}px`; }
+  const click = TL.clicks.find((c) => t >= c && t <= c + .45);
+  if (click !== undefined && cp) {
+    const k = (t - click) / .45;
+    Object.assign($("ripple").style, { left: `${cp.x}px`, top: `${cp.y}px`, opacity: 1 - k, transform: `scale(${1 + k * 2.6})` });
+    $("cursor").style.transform = `scale(${1 - .18 * Math.sin(k * Math.PI)})`;
+  } else { $("ripple").style.opacity = 0; $("cursor").style.transform = "none"; }
+
+  // ---- results
+  const S = sceneT("results");
+  $("L-results").style.opacity = fade(t, S.a, sceneT("integrate").a + .2, .6);
+  const vals = [2571, 6801, 7635], maxH = 470;
+  vals.forEach((v, i) => {
+    const k = ease((t - S.a - .5 - i * .35) / 1.2);
+    $("b" + i).style.height = `${(v / 8000) * maxH * k}px`;
+    const val = $("v" + i); val.textContent = `+₹${Math.round(v * k).toLocaleString("en-IN")}`;
+    val.style.top = `${520 - (v / 8000) * maxH * k - 70}px`; val.style.opacity = clamp(k * 3);
+    val.style.color = i === 2 ? "#2ee6b8" : "#eef3fb";
+  });
+  ["s0", "s1", "s2"].forEach((id, i) => {
+    const k = easeOut((t - S.a - 2.2 - i * .9) / .6);
+    $(id).style.opacity = k; $(id).style.transform = `translateX(${(1 - k) * 40}px)`;
+  });
+
+  // ---- tagline
+  const T = sceneT("tagline");
+  $("L-tagline").style.opacity = fade(t, T.a, sceneT("end").a + .1, .5);
+  TL.tagline.forEach((at, i) => {
+    const k = easeOut((t - at) / .55);
+    $("t" + i).style.opacity = k; $("t" + i).style.transform = `translateY(${(1 - k) * 30}px)`; $("t" + i).style.filter = `blur(${(1 - k) * 10}px)`;
+  });
+
+  // ---- end card
+  const E = sceneT("end");
+  $("L-end").style.opacity = easeOut((t - E.a) / .6);
+  ["endlogo", "e0", "e1", "e2", "e3"].forEach((id, i) => {
+    const k = easeOut((t - E.a - .1 - i * .28) / .6);
+    $(id).style.opacity = k; $(id).style.transform = `translateY(${(1 - k) * 24}px)` + (id === "endlogo" ? ` scale(${.85 + .15 * k})` : "");
+  });
+
+  // ---- card scenes
+  TL.cardScenes.forEach((cs) => {
+    const sc = sceneT(cs.id);
+    $("L-" + cs.id).style.opacity = fade(t, sc.a, sc.b + .15, .5);
+    const kt = easeOut((t - sc.a - .1) / .6), tt = easeOut((t - sc.a - .3) / .7);
+    $(cs.id + "-k").style.opacity = kt; $(cs.id + "-k").style.transform = `translateY(${(1 - kt) * 14}px)`;
+    $(cs.id + "-t").style.opacity = tt; $(cs.id + "-t").style.transform = `translateY(${(1 - tt) * 22}px)`;
+    $(cs.id + "-t").style.filter = `blur(${(1 - tt) * 6}px)`;
+    cs.cards.forEach((c, i) => {
+      const k = easeOut((t - c.at) / .55), el = $(`${cs.id}-c${i}`);
+      el.style.opacity = k; el.style.transform = `translateY(${(1 - k) * 30}px) scale(${.965 + .035 * k})`;
+      const glow = clamp(1 - Math.abs(t - c.at - .5) / 1.2);  // a short highlight as it's mentioned
+      el.style.borderColor = `rgba(46,230,184,${.08 + .5 * glow})`;
+    });
+  });
+
+  // ---- formula
+  const F = sceneT("formula");
+  $("L-formula").style.opacity = fade(t, F.a, F.b + .15, .5);
+  TL.formula.parts.forEach((at, i) => {
+    const on = clamp(1 - Math.abs(t - at - .6) / 1.0);
+    $("fx" + i).style.background = `rgba(46,230,184,${.22 * on})`;
+  });
+  TL.formula.examples.forEach((at, i) => {
+    const k = easeOut((t - at) / .6);
+    $("ex" + i).style.opacity = k; $("ex" + i).style.transform = `translateY(${(1 - k) * 30}px)`;
+  });
+
+  // ---- journey
+  const J = sceneT("journey");
+  $("L-journey").style.opacity = fade(t, J.a, J.b + .15, .5);
+  TL.journey.forEach((j, i) => {
+    const k = ease((t - j.at) / 1.0), h = (j.v / 9000) * 400 * k;
+    $("jb" + i).style.height = `${h}px`;
+    const v = $("jv" + i); v.textContent = `+${Math.round(j.v * k).toLocaleString("en-IN")}`;
+    v.style.top = `${400 - h - 50}px`; v.style.opacity = clamp(k * 3); v.style.color = j.color;
+  });
+
+  // ---- captions
+  const cap = TL.captions.find((c) => t >= c.a && t <= c.b);
+  if (cap) {
+    $("caption").textContent = cap.text;
+    $("caption").style.opacity = Math.min(clamp((t - cap.a) / .15), clamp((cap.b - t) / .15));
+  } else $("caption").style.opacity = 0;
+}
+</script>
+</body>
+</html>

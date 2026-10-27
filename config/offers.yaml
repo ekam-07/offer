@@ -1,0 +1,202 @@
+# Offer catalog. Every offer the system (rules or AI) can send must be listed here.
+#
+# type:        none | reminder | points | shipping | flat | percent | access
+# unit:        what "value" means -> none | inr (rupees off) | percent | points
+# value_range: [min, max] allowed by the catalog itself (segment rules can lower max)
+# min_order:   minimum cart value in INR for the offer to apply
+# valid_days:  how long the offer stays active after it is sent
+# template:    default message used by the rule-based fallback
+#              placeholders: {name} {value} {category} {cart_item} {points} {min_order} {valid_days}
+# state_validity: false = valid_days is internal (e.g. how long a reminder counts as recent)
+#              and must NOT be told to the customer
+# extra_allowed_days: other day counts a message may mention because they are true facts
+
+point_value_inr: 0.25        # cost of one loyalty point to the business
+shipping_cost_inr: 60        # cost of giving free delivery
+
+offers:
+  NONE:
+    type: none
+    unit: none
+    description: Send nothing. Best when the customer will very likely buy anyway.
+    template: ""
+
+  CART_REMINDER:
+    type: reminder
+    unit: none
+    valid_days: 2                # 48h: counts as "recent" for R8/R12, never told to the customer
+    state_validity: false
+    description: Reminder about items left in the cart. No discount.
+    template: "Hi {name}, your {cart_item} is still in your cart. Tap to finish your order whenever you're ready."
+
+  CART_ALTERNATIVE:
+    type: reminder
+    unit: none
+    valid_days: 2
+    state_validity: false
+    description: The cart item is out of stock; point to a similar product that is in stock (R25).
+    template: "Hi {name}, the {cart_item} in your cart is out of stock right now, but the {cart_alternative} is available if you'd like a similar one."
+
+  POINTS_REMINDER:
+    type: reminder
+    unit: none
+    valid_days: 7
+    state_validity: false
+    extra_allowed_days: [30]     # "points expire within 30 days" is a fact from the data
+    description: Remind the customer that their reward points are about to expire.
+    template: "Hi {name}, {points} of your reward points expire soon. Use them on your next order before they're gone."
+
+  # Free, high-margin nudges (cost nothing): the default when no paid offer makes sense.
+  REPLENISH_REMINDER:
+    type: reminder
+    unit: none
+    valid_days: 7
+    state_validity: false
+    description: Restock reminder for Grocery/Beauty when the customer's usual reorder cycle has come round.
+    template: "Hi {name}, time to restock your {replenish_item}? You can reorder it in one tap."
+
+  REVIEW_REQUEST:
+    type: reminder
+    unit: none
+    valid_days: 7
+    state_validity: false
+    description: Ask for a review of a recent purchase (no incentive).
+    template: "Hi {name}, how are you finding your {review_item}? Your review helps other shoppers."
+
+  POINTS_UPDATE:
+    type: reminder
+    unit: none
+    valid_days: 7
+    state_validity: false
+    description: Tell the customer how many loyalty points they have.
+    template: "Hi {name}, your points are growing: you now have {points_balance} points to use on your next order."
+
+  EARLY_ACCESS:
+    type: access
+    unit: none
+    valid_days: 7
+    description: Early access to the next sale. No cash cost.
+    template: "Hi {name}, as one of our valued customers you get early access to our {category} sale. Valid for {valid_days} days."
+
+  BONUS_POINTS:
+    type: points
+    unit: points
+    value_range: [100, 500]
+    valid_days: 7
+    description: Extra loyalty points on the next order.
+    template: "Hi {name}, earn {value} bonus points on your next order. Valid for {valid_days} days."
+
+  FREE_SHIPPING:
+    type: shipping
+    unit: none
+    min_order: 299
+    valid_days: 5
+    # Only valid in categories where the delivery cost still leaves the margin floor on an order
+    # of min_order (R5), so a low-margin purchase like Mobiles can never turn it into a loss.
+    scope: margin_safe_categories
+    description: Free delivery on the next order, only on categories with enough margin.
+    template: "Hi {name}, free delivery on your next order above ₹{min_order}{only_on}. Valid for {valid_days} days."
+
+  FLAT_OFF:
+    type: flat
+    unit: inr
+    value_range: [50, 300]
+    min_order: 999
+    valid_days: 5
+    scope: margin_safe_categories   # same R5 protection as free delivery
+    description: Fixed rupee discount on orders above min_order, only on categories with enough margin.
+    template: "Hi {name}, here's ₹{value} off on your next order above ₹{min_order}{only_on}. Valid for {valid_days} days."
+
+  PERCENT_OFF:
+    type: percent
+    unit: percent
+    value_range: [5, 20]
+    min_order: 999
+    valid_days: 5
+    scope: margin_safe_categories   # a % off must fit the margin of whatever they buy (R5)
+    description: Percentage discount on the next order, only on categories with enough margin.
+    template: "Hi {name}, we miss you! Get {value}% off your next order above ₹{min_order}{only_on}. Valid for {valid_days} days."
+
+  CATEGORY_DEAL:
+    type: percent
+    unit: percent
+    value_range: [5, 15]
+    min_order: 499
+    valid_days: 5
+    description: Percentage discount only on the customer's favourite category.
+    template: "Hi {name}, {value}% off on {category} just for you. Valid for {valid_days} days on orders above ₹{min_order}."
+
+  PRODUCT_COUPON:
+    type: percent
+    unit: percent
+    value_range: [5, 25]
+    valid_days: 7
+    # Applies only to the customer's focus product (in cart > wishlist > last viewed).
+    # The % is capped by the customer's coupon tier (rules.yaml coupon_tiers): regular
+    # buyers always get less than irregular or new buyers on the same product.
+    scope: focus_product
+    description: Coupon on the one product the customer is most interested in (cart, wishlist or last viewed); size set by coupon tier.
+    template: "Hi {name}, here's a coupon for {value}% off the {product}{product_why}{coupon_min_order}. Valid for {valid_days} days."
+
+  WELCOME:
+    type: percent
+    unit: percent
+    value_range: [10, 10]
+    min_order: 499
+    valid_days: 7
+    # Only valid in categories whose margin can afford the discount (R5), instead of being
+    # blocked when a new customer happened to browse a low-margin category like Mobiles.
+    scope: margin_safe_categories
+    description: First-order welcome discount for new customers, only on categories with enough margin.
+    template: "Welcome {name}! Enjoy {value}% off your first order of {categories} above ₹{min_order}. Valid for {valid_days} days."
+
+  # ---- Bought together: what other shoppers buy with the customer's cart item, recent
+  # purchase or wishlist item (the store's own order data, market_basket.csv).
+  BUNDLE_SUGGEST:
+    type: reminder
+    unit: none
+    valid_days: 7
+    state_validity: false
+    description: Suggest the item other shoppers most often buy with the customer's cart item, recent purchase or wishlist item. No discount.
+    template: "Hi {name}, people who buy the {bundle_anchor} often add the {bundle_item} (₹{bundle_price}). Have a look whenever you like."
+
+  BUNDLE_DEAL:
+    type: bundle
+    unit: inr
+    value_range: [20, 49]
+    valid_days: 5
+    # R5: the ₹ off can never be more than the bought-together item's margin above the floor.
+    description: Small rupee discount on the bought-together item only; capped by that item's margin (R5).
+    template: "Hi {name}, the {bundle_item} goes well with your {bundle_anchor}: get ₹{value} off it (usual price ₹{bundle_price}). Valid for {valid_days} days."
+
+  # ---- Wishlist watcher: only when a wishlisted item REALLY dropped in price or came back in stock.
+  WISHLIST_ALERT:
+    type: reminder
+    unit: none
+    valid_days: 7
+    state_validity: false
+    description: Tell the customer a wishlist item really dropped in price or came back in stock. No discount from us.
+    template: "Hi {name}, good news about the {wishlist_item} on your wishlist: {wishlist_news}."
+
+  # ---- Spend goal: reach a target over one or more orders, get ₹ off. The target is about
+  # goal_multiple x the customer's usual order (never below the flat-off margin-safe basket).
+  SPEND_GOAL:
+    type: flat
+    unit: inr
+    value_range: [50, 200]
+    min_order: 999
+    goal_multiple: 1.5
+    valid_days: 7
+    scope: margin_safe_categories
+    description: Spend goal - ₹ off once the customer's orders in the next valid_days add up to the target (one order or several).
+    template: "Hi {name}, here's a goal: spend ₹{min_order}{only_on} within {valid_days} days, in one order or several, and get ₹{value} off."
+
+  # ---- Pick your perk: two rewards that cost the shop the same; the customer replies 1 or 2.
+  PERK_CHOICE:
+    type: choice
+    unit: none
+    min_order: 299                 # same minimum order as FREE_SHIPPING
+    valid_days: 5
+    scope: margin_safe_categories   # the free-delivery half follows the same R5 rule as FREE_SHIPPING
+    description: The customer picks one of two perks that cost the shop the same - free delivery or bonus points (shipping cost / point value).
+    template: "Hi {name}, pick your perk: reply 1 for free delivery on orders above ₹{min_order}{only_on}, or 2 for {perk_points} bonus points on your next order. Valid for {valid_days} days."

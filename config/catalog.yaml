@@ -1,0 +1,96 @@
+# Product catalog and store promotions used by the event generator.
+# Brands are fictional on purpose, so the synthetic data can't be mistaken for real brand data.
+#
+# items: [product type, category_l2, base price in INR]
+# Each product = one brand x one product type; its price = base price x a brand price factor.
+
+brands_per_item: 3          # how many brands sell each product type
+brand_price_factor: [0.8, 1.4]
+rating_range: [3.2, 4.8]
+
+brands:
+  Fashion: [UrbanThread, Desi Loom, StrideMax, Velvet Lane]
+  Electronics: [VoltEdge, SoundNest, Pixelon, ChargeUp]
+  Mobiles: [Nova Mobile, Zentro, ClipCase, PowerPod]
+  Home: [CasaCraft, HomeNest, BrewWell, PureFlow]
+  Beauty: [GlowLeaf, Aurae, SilkRoot, SunVeil]
+  Books: [PageTurn Press, Inkwell, Lotus Books, CodeCraft]
+  Grocery: [FarmFresh, Annapurna Foods, LeafTea, GoldDrop]
+
+items:
+  Fashion:
+    - [Denim Jacket, Outerwear, 1800]
+    - [Running Shoes, Footwear, 2500]
+    - [Cotton Kurta, Ethnic Wear, 900]
+    - [Leather Handbag, Bags, 2200]
+    - [Graphic T-Shirt, Topwear, 500]
+  Electronics:
+    - [Noise Cancelling Headphones, Audio, 3500]
+    - [Smart Watch, Wearables, 4000]
+    - [Bluetooth Speaker, Audio, 1800]
+    - [Power Bank, Accessories, 1200]
+    - [Wireless Mouse, Computer Accessories, 700]
+  Mobiles:
+    - [Smartphone 5G, Phones, 15000]
+    - [Phone Case, Cases, 400]
+    - [Fast Charger, Chargers, 900]
+    - [Wireless Earbuds, Audio, 2000]
+    - [Screen Guard, Protection, 300]
+  Home:
+    - [Non-stick Cookware Set, Kitchen, 2400]
+    - [Bedsheet Set, Furnishing, 1200]
+    - [Table Lamp, Decor, 900]
+    - [Water Purifier, Appliances, 9000]
+    - [Storage Box Set, Storage, 600]
+  Beauty:
+    - [Face Serum, Skincare, 700]
+    - [Hair Dryer, Appliances, 1500]
+    - [Perfume, Fragrance, 1600]
+    - [Sunscreen SPF 50, Skincare, 450]
+    - [Lipstick, Makeup, 500]
+  Books:
+    - [Atomic Habits, Self-help, 450]
+    - [Python Crash Course, Technology, 800]
+    - [The Alchemist, Fiction, 300]
+    - [Ikigai, Self-help, 350]
+    - [Indian History Atlas, Reference, 650]
+  Grocery:
+    - [Basmati Rice 5kg, Staples, 650]
+    - [Dry Fruits Pack, Snacks, 900]
+    - [Green Tea, Beverages, 350]
+    - [Olive Oil 1L, Cooking, 800]
+    - [Masala Combo, Spices, 400]
+
+# Stock levels (R25: out-of-stock products are never promoted; overstock can be pushed).
+stock:
+  out_of_stock_share: 0.08
+  overstock_share: 0.10
+  normal_units: [20, 300]
+  overstock_units: [600, 1500]
+
+# Recent price drops and restocks (for the wishlist watcher). Own random stream, so the rest
+# of the catalog and all orders stay the same. The price stored is the NEW price.
+price_changes:
+  window_days: 7            # changes in the last week before the data's "now"
+  drop_share: 0.12          # share of in-stock products whose price dropped
+  drop_pct: [10, 30]        # how much it dropped
+  restock_share: 0.06       # share of in-stock products that came back in stock
+
+# Festivals: browsing rises in the days before (event stream and the 30-day simulation).
+# Order history is NOT changed, so earlier evaluation results stay reproducible.
+festivals:
+  - {name: Diwali, date: "2025-10-21", boost_days_before: 14, browsing_boost: 1.6, purchase_boost: 1.4}
+  - {name: Diwali, date: "2026-11-08", boost_days_before: 14, browsing_boost: 1.6, purchase_boost: 1.4}
+
+# Store-wide campaigns over the year. Coupons used in orders are linked to these.
+promotions:
+  every_days: 14            # a new campaign starts every N days
+  plan_ahead_days: 60       # campaigns already planned after today
+  duration_days: [3, 7]
+  types:                    # [offer type, value, applies to]
+    - [PERCENT_OFF, 10, all]
+    - [PERCENT_OFF, 15, category]
+    - [FLAT_OFF, 100, all]
+    - [FLAT_OFF, 200, category]
+    - [FREE_SHIPPING, 0, all]
+    - [CATEGORY_DEAL, 20, category]

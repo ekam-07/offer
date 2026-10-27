@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "offer-preview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "preview.py"
+      ],
+      "port": 5000
+    },
+    {
+      "name": "offer-demo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "preview.py"
+      ],
+      "port": 5001,
+      "env": {
+        "PORT": "5001",
+        "OFFERS_DB": "data/demo_offers.db",
+        "AUTOMATION": "1",
+        "TELEGRAM_DISABLED": "1",
+        "DELIVERY_MODE": "dry_run",
+        "FORCE_DRY_RUN": "1"
+      }
+    }
+  ]
+}

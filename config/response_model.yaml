@@ -1,0 +1,99 @@
+# How simulated customers respond to offers. Used only by the evaluation (python evaluate.py).
+# The simulator knows each customer's hidden persona; the policies only see features.
+# These numbers are assumptions; they can later be calibrated from the Hillstrom email
+# campaign dataset (discount email vs no email, randomised).
+#
+# base_buy              chance of buying in the next 7 days with NO offer
+# discount_sensitivity  max share of non-buyers a discount can convert (reached at large discounts)
+# points_affinity       how much they care about loyalty points (0..1, scales points offers)
+# cart_reminder         extra conversion from a plain reminder when they have an open cart
+# points_reminder       extra conversion from a reminder when points are expiring
+# early_access          extra conversion from early sale access
+# optout_per_message    chance a message makes them unsubscribe
+
+window_days: 7
+customer_noise: 0.3          # per-customer spread around the persona's base_buy (lognormal sigma)
+order_value_noise: 0.3       # order value spread around the customer's average order
+discount_half_effect_pct: 7  # discount at which half of discount_sensitivity is reached
+category_deal_breadth: 0.7   # a category-only deal feels like 70% of the same whole-order discount
+scoped_offer_breadth: 0.6    # a deal limited to categories the customer isn't browsing feels like 60% of it
+product_coupon_breadth:      # a coupon on one product works best when they already want that product
+  in cart: 0.9
+  wishlist: 0.9
+  viewed: 0.7
+  popular in category: 0.5
+default_aov_inr: 900         # for customers with no orders yet
+min_points_for_reminder: 300
+goal_completion: 0.6         # of customers a spend goal persuades, the share who actually reach the target
+bundle_attach_effect: 0.03   # a "goes well with" suggestion: extra chance they add the bought-together item
+free_offer_effect:           # extra conversion from the free nudges (when their condition holds)
+  REPLENISH_REMINDER: 0.08   # reminded right when they usually reorder
+  REVIEW_REQUEST: 0.0        # asks for a review; no purchase effect
+  POINTS_UPDATE: 0.02        # x points_affinity
+  WISHLIST_ALERT: 0.10       # a real price drop / restock on something they wanted
+
+personas:
+  loyal:
+    base_buy: 0.55
+    discount_sensitivity: 0.06
+    points_affinity: 0.6
+    cart_reminder: 0.05
+    points_reminder: 0.04
+    early_access: 0.04
+    optout_per_message: 0.01
+  deal_seeker:
+    base_buy: 0.12
+    discount_sensitivity: 0.45
+    points_affinity: 0.3
+    cart_reminder: 0.05
+    points_reminder: 0.03
+    early_access: 0.02
+    optout_per_message: 0.003
+  at_risk:
+    base_buy: 0.08
+    discount_sensitivity: 0.30
+    points_affinity: 0.4
+    cart_reminder: 0.06
+    points_reminder: 0.05
+    early_access: 0.02
+    optout_per_message: 0.008
+  dormant:
+    base_buy: 0.02
+    discount_sensitivity: 0.18
+    points_affinity: 0.2
+    cart_reminder: 0.02
+    points_reminder: 0.03
+    early_access: 0.01
+    optout_per_message: 0.02
+  new:
+    base_buy: 0.10
+    discount_sensitivity: 0.30
+    points_affinity: 0.2
+    cart_reminder: 0.08
+    points_reminder: 0.01
+    early_access: 0.01
+    optout_per_message: 0.01
+  cart_abandoner:
+    base_buy: 0.15
+    discount_sensitivity: 0.30
+    points_affinity: 0.3
+    cart_reminder: 0.20
+    points_reminder: 0.02
+    early_access: 0.02
+    optout_per_message: 0.005
+  window_shopper:
+    base_buy: 0.02
+    discount_sensitivity: 0.10
+    points_affinity: 0.1
+    cart_reminder: 0.04
+    points_reminder: 0.01
+    early_access: 0.01
+    optout_per_message: 0.01
+  vip:
+    base_buy: 0.35
+    discount_sensitivity: 0.05
+    points_affinity: 0.7
+    cart_reminder: 0.05
+    points_reminder: 0.05
+    early_access: 0.10
+    optout_per_message: 0.01

@@ -1,0 +1,5 @@
+anthropic==0.125.0
+python-dotenv
+pyyaml
+flask
+pandas
